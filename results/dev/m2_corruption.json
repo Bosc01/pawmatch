@@ -4,7 +4,7 @@
  "split_sha256": "e913cb14af098b4610c56ca2d1890b535d9e8be14a465da220e551d0122d28db",
  "protocol_seed": 0,
  "bootstrap_resamples": 1000,
- "code_commit": "7ad4dff",
+ "code_commit": "7ffe81e",
  "synthetic": true,
  "applied_to": "queries only",
  "parameters": {

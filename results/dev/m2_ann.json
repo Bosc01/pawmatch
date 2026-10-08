@@ -4,7 +4,7 @@
  "split_sha256": "e913cb14af098b4610c56ca2d1890b535d9e8be14a465da220e551d0122d28db",
  "protocol_seed": 0,
  "bootstrap_resamples": 1000,
- "code_commit": "7ad4dff",
+ "code_commit": "7ffe81e",
  "model": "dinov2_vits14",
  "hardware": "Apple M5, 24 GB RAM",
  "faiss": "1.15.1",
@@ -14,48 +14,94 @@
   "n_queries": 1350,
   "k": 10,
   "flat": {
-   "p50_ms": 0.21139555610716343,
-   "p99_ms": 0.2240644861012697
+   "p50_ms": 0.24099997244775295,
+   "p99_ms": 0.25449089007452125
   },
   "hnsw": {
    "M": 32,
    "ef_construction": 40,
-   "build_seconds": 0.3061230001039803,
+   "build_seconds": 0.30696691712364554,
    "sweep": [
     {
      "ef_search": 16,
      "recall_at_10": 0.9843703703703705,
-     "p50_ms": 0.02183392643928528,
-     "p99_ms": 0.03227144479751587
+     "p50_ms": 0.021959072910249233,
+     "p99_ms": 0.032272383105009794
     },
     {
      "ef_search": 32,
      "recall_at_10": 0.9960000000000001,
-     "p50_ms": 0.03427104093134403,
-     "p99_ms": 0.049293197225779295
+     "p50_ms": 0.033791991882026196,
+     "p99_ms": 0.047979934606701136
     },
     {
      "ef_search": 64,
      "recall_at_10": 0.9994074074074073,
-     "p50_ms": 0.056083546951413155,
-     "p99_ms": 0.08137609576806426
+     "p50_ms": 0.0558546744287014,
+     "p99_ms": 0.0798178929835558
     },
     {
      "ef_search": 128,
      "recall_at_10": 1.0,
-     "p50_ms": 0.10033301077783108,
-     "p99_ms": 0.13769449666142464
+     "p50_ms": 0.09985396172851324,
+     "p99_ms": 0.13650498818606138
     },
     {
      "ef_search": 256,
      "recall_at_10": 1.0,
-     "p50_ms": 0.18391688354313374,
-     "p99_ms": 0.25151856243610377
+     "p50_ms": 0.2023543929681182,
+     "p99_ms": 0.2728090295568108
     }
    ]
   }
  },
- "vecstore": "not run: github.com/Bosc01/vecstore at commit ac7603b has no pyproject.toml or setup.py, so pip cannot install it",
+ "vecstore": {
+  "status": "run",
+  "source": "github.com/Bosc01/vecstore, branch packaging, commit 4c4096c",
+  "brute_force": {
+   "recall_at_10": 1.0,
+   "p50_ms": 0.10079203639179468,
+   "p99_ms": 0.13740466441959143
+  },
+  "hnsw": {
+   "M": 32,
+   "ef_construction": 40,
+   "flags": "defaults: heuristic_select False, layer0_full_links True",
+   "build_seconds": 6.348342208890244,
+   "sweep": [
+    {
+     "ef_search": 16,
+     "recall_at_10": 0.9856296296296295,
+     "p50_ms": 0.2800414804369211,
+     "p99_ms": 0.4977354593575
+    },
+    {
+     "ef_search": 32,
+     "recall_at_10": 0.9948148148148148,
+     "p50_ms": 0.41625043377280235,
+     "p99_ms": 0.7066895184107124
+    },
+    {
+     "ef_search": 64,
+     "recall_at_10": 0.9983703703703704,
+     "p50_ms": 0.802875030785799,
+     "p99_ms": 1.546687965746969
+    },
+    {
+     "ef_search": 128,
+     "recall_at_10": 0.9991851851851853,
+     "p50_ms": 1.2368744937703013,
+     "p99_ms": 2.5255774124525487
+    },
+    {
+     "ef_search": 256,
+     "recall_at_10": 1.0,
+     "p50_ms": 2.022353932261467,
+     "p99_ms": 3.5048744338564575
+    }
+   ]
+  }
+ },
  "identification": {
   "gallery_size": 279,
   "n_queries": 1350,
