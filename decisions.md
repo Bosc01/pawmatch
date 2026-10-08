@@ -46,7 +46,7 @@ The largest absolute difference between the two ArcFace loss curves over the 20 
 
 bf16 was tested instead of fp16 because it needs no gradient scaler. The losses stay in fp32 in both modes.
 
-Pending decision: `configs/petface.toml` stays at fp32 until the precision for PetFace runs is chosen.
+Decision (2026-10-08): all three PetFace fine-tunes train in bf16 autocast (`configs/petface.toml`). Embeddings are always computed in fp32.
 
 ## Preprocessing check (2026-10-08)
 

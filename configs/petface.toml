@@ -12,5 +12,5 @@ bootstrap = 1000
 
 [train]
 steps = 18000  # fixed before the first run (decisions.md)
-precision = "fp32"  # fp32 or bf16; pending decision (decisions.md)
+precision = "bf16"  # all three PetFace fine-tunes; embeddings stay fp32 (decisions.md)
 run_c_arm = ""  # set to the arm with higher val_a rank-1 after runs (a) and (b)
