@@ -1,0 +1,742 @@
+{
+ "hardware": "Apple M5, 24 GB RAM",
+ "code_commit": "690a9da",
+ "threads": 1,
+ "build": "CMake Release (-O3), no -ffast-math; NEON on arm64, AVX2 and FMA on x86-64",
+ "compiler": "Apple LLVM 17.0.0 (clang-1700.6.3.2)",
+ "k": 100,
+ "warmup_queries": 1000,
+ "timed_queries": 10000,
+ "rounds": 3,
+ "statistic": "median across rounds of each round's percentile",
+ "gallery_rows": {
+  "1000": {
+   "real": 1000,
+   "synthetic": 0
+  },
+  "10000": {
+   "real": 7013,
+   "synthetic": 2987
+  },
+  "50000": {
+   "real": 7013,
+   "synthetic": 42987
+  }
+ },
+ "vectors": {
+  "source": "dogfacenet dinov2_vits14 embeddings",
+  "dim": 384,
+  "gallery_rows": 50000,
+  "real_gallery_rows": 7013,
+  "query_rows": 10000,
+  "real_query_rows": 1350,
+  "parity_gallery_rows": 1000,
+  "synthetic_rows": "random unit vectors, seed 0"
+ },
+ "summary": [
+  {
+   "gallery": 1000,
+   "version": "v0_naive",
+   "p50_us": 216.042,
+   "p99_us": 249.416,
+   "p999_us": 329.708,
+   "mean_us": 205.607,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "gallery": 1000,
+   "version": "v1_simd",
+   "p50_us": 37.167,
+   "p99_us": 39.792,
+   "p999_us": 68.625,
+   "mean_us": 36.998,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "gallery": 1000,
+   "version": "v2_prealloc",
+   "p50_us": 40.708,
+   "p99_us": 67.084,
+   "p999_us": 99.75,
+   "mean_us": 42.074,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "gallery": 1000,
+   "version": "v3_heap",
+   "p50_us": 50.833,
+   "p99_us": 66.083,
+   "p999_us": 114.583,
+   "mean_us": 50.847,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "gallery": 1000,
+   "version": "v4_blocked",
+   "p50_us": 48.542,
+   "p99_us": 54.625,
+   "p999_us": 84.875,
+   "mean_us": 48.713,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "gallery": 1000,
+   "version": "v5_ilp",
+   "p50_us": 43.541,
+   "p99_us": 62.416,
+   "p999_us": 475.959,
+   "mean_us": 47.364,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "gallery": 10000,
+   "version": "v0_naive",
+   "p50_us": 1667.292,
+   "p99_us": 3238.542,
+   "p999_us": 4833.625,
+   "mean_us": 1794.542,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "gallery": 10000,
+   "version": "v1_simd",
+   "p50_us": 342.375,
+   "p99_us": 403.708,
+   "p999_us": 656.541,
+   "mean_us": 357.198,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "gallery": 10000,
+   "version": "v2_prealloc",
+   "p50_us": 372.584,
+   "p99_us": 445.5,
+   "p999_us": 480.041,
+   "mean_us": 365.942,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "gallery": 10000,
+   "version": "v3_heap",
+   "p50_us": 402.375,
+   "p99_us": 680.458,
+   "p999_us": 953.708,
+   "mean_us": 416.171,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "gallery": 10000,
+   "version": "v4_blocked",
+   "p50_us": 371.25,
+   "p99_us": 742.75,
+   "p999_us": 1066.75,
+   "mean_us": 394.307,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "gallery": 10000,
+   "version": "v5_ilp",
+   "p50_us": 323.458,
+   "p99_us": 341.417,
+   "p999_us": 350.125,
+   "mean_us": 321.062,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "gallery": 50000,
+   "version": "v0_naive",
+   "p50_us": 8568.459,
+   "p99_us": 13105.5,
+   "p999_us": 21925.833,
+   "mean_us": 8773.437,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "gallery": 50000,
+   "version": "v1_simd",
+   "p50_us": 1855.709,
+   "p99_us": 3980.75,
+   "p999_us": 9310.709,
+   "mean_us": 1986.144,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "gallery": 50000,
+   "version": "v2_prealloc",
+   "p50_us": 1959.5,
+   "p99_us": 4126.625,
+   "p999_us": 8707.125,
+   "mean_us": 2101.967,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "gallery": 50000,
+   "version": "v3_heap",
+   "p50_us": 1877.875,
+   "p99_us": 3535.5,
+   "p999_us": 8137.25,
+   "mean_us": 2002.808,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "gallery": 50000,
+   "version": "v4_blocked",
+   "p50_us": 2028.5,
+   "p99_us": 4257.583,
+   "p999_us": 10708.583,
+   "mean_us": 2116.542,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "gallery": 50000,
+   "version": "v5_ilp",
+   "p50_us": 1802.542,
+   "p99_us": 3171.917,
+   "p999_us": 6640.333,
+   "mean_us": 1923.45,
+   "heap_allocations_per_query": 0.0
+  }
+ ],
+ "per_round": [
+  {
+   "round": 0,
+   "version": "v0_naive",
+   "gallery": 1000,
+   "p50_us": 216.042,
+   "p99_us": 249.416,
+   "p999_us": 329.708,
+   "mean_us": 205.607,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 0,
+   "version": "v1_simd",
+   "gallery": 1000,
+   "p50_us": 37.167,
+   "p99_us": 39.792,
+   "p999_us": 63.625,
+   "mean_us": 36.998,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 0,
+   "version": "v2_prealloc",
+   "gallery": 1000,
+   "p50_us": 37.625,
+   "p99_us": 46.0,
+   "p999_us": 72.0,
+   "mean_us": 38.331,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 0,
+   "version": "v3_heap",
+   "gallery": 1000,
+   "p50_us": 45.291,
+   "p99_us": 48.875,
+   "p999_us": 60.625,
+   "mean_us": 44.894,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 0,
+   "version": "v4_blocked",
+   "gallery": 1000,
+   "p50_us": 46.584,
+   "p99_us": 52.917,
+   "p999_us": 84.875,
+   "mean_us": 46.767,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 0,
+   "version": "v5_ilp",
+   "gallery": 1000,
+   "p50_us": 43.541,
+   "p99_us": 62.416,
+   "p999_us": 1169.375,
+   "mean_us": 47.364,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 0,
+   "version": "v0_naive",
+   "gallery": 10000,
+   "p50_us": 1666.333,
+   "p99_us": 3480.5,
+   "p999_us": 7962.292,
+   "mean_us": 1794.542,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 0,
+   "version": "v1_simd",
+   "gallery": 10000,
+   "p50_us": 342.375,
+   "p99_us": 403.708,
+   "p999_us": 656.541,
+   "mean_us": 353.618,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 0,
+   "version": "v2_prealloc",
+   "gallery": 10000,
+   "p50_us": 372.584,
+   "p99_us": 445.5,
+   "p999_us": 480.041,
+   "mean_us": 365.942,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 0,
+   "version": "v3_heap",
+   "gallery": 10000,
+   "p50_us": 347.542,
+   "p99_us": 368.875,
+   "p999_us": 376.917,
+   "mean_us": 342.088,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 0,
+   "version": "v4_blocked",
+   "gallery": 10000,
+   "p50_us": 328.708,
+   "p99_us": 380.084,
+   "p999_us": 387.916,
+   "mean_us": 337.764,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 0,
+   "version": "v5_ilp",
+   "gallery": 10000,
+   "p50_us": 289.833,
+   "p99_us": 335.0,
+   "p999_us": 346.416,
+   "mean_us": 297.629,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 0,
+   "version": "v0_naive",
+   "gallery": 50000,
+   "p50_us": 8568.459,
+   "p99_us": 12400.334,
+   "p999_us": 21627.917,
+   "mean_us": 8773.437,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 0,
+   "version": "v1_simd",
+   "gallery": 50000,
+   "p50_us": 2185.666,
+   "p99_us": 4073.208,
+   "p999_us": 9310.709,
+   "mean_us": 2303.304,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 0,
+   "version": "v2_prealloc",
+   "gallery": 50000,
+   "p50_us": 1959.5,
+   "p99_us": 3925.042,
+   "p999_us": 6839.5,
+   "mean_us": 2101.967,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 0,
+   "version": "v3_heap",
+   "gallery": 50000,
+   "p50_us": 1877.875,
+   "p99_us": 3247.958,
+   "p999_us": 4761.417,
+   "mean_us": 2002.808,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 0,
+   "version": "v4_blocked",
+   "gallery": 50000,
+   "p50_us": 2155.875,
+   "p99_us": 7873.333,
+   "p999_us": 21380.625,
+   "mean_us": 2452.37,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 0,
+   "version": "v5_ilp",
+   "gallery": 50000,
+   "p50_us": 2082.208,
+   "p99_us": 10043.375,
+   "p999_us": 27854.458,
+   "mean_us": 2600.399,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 1,
+   "version": "v0_naive",
+   "gallery": 1000,
+   "p50_us": 217.0,
+   "p99_us": 338.083,
+   "p999_us": 594.084,
+   "mean_us": 221.364,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 1,
+   "version": "v1_simd",
+   "gallery": 1000,
+   "p50_us": 45.583,
+   "p99_us": 59.959,
+   "p999_us": 92.25,
+   "mean_us": 45.161,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 1,
+   "version": "v2_prealloc",
+   "gallery": 1000,
+   "p50_us": 47.042,
+   "p99_us": 79.875,
+   "p999_us": 113.0,
+   "mean_us": 49.566,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 1,
+   "version": "v3_heap",
+   "gallery": 1000,
+   "p50_us": 59.917,
+   "p99_us": 102.875,
+   "p999_us": 157.875,
+   "mean_us": 63.212,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 1,
+   "version": "v4_blocked",
+   "gallery": 1000,
+   "p50_us": 71.667,
+   "p99_us": 138.583,
+   "p999_us": 336.125,
+   "mean_us": 75.569,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 1,
+   "version": "v5_ilp",
+   "gallery": 1000,
+   "p50_us": 58.0,
+   "p99_us": 109.791,
+   "p999_us": 475.959,
+   "mean_us": 61.41,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 1,
+   "version": "v0_naive",
+   "gallery": 10000,
+   "p50_us": 1671.25,
+   "p99_us": 3238.542,
+   "p999_us": 4833.625,
+   "mean_us": 1839.133,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 1,
+   "version": "v1_simd",
+   "gallery": 10000,
+   "p50_us": 336.625,
+   "p99_us": 532.958,
+   "p999_us": 737.875,
+   "mean_us": 357.198,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 1,
+   "version": "v2_prealloc",
+   "gallery": 10000,
+   "p50_us": 330.333,
+   "p99_us": 351.0,
+   "p999_us": 359.583,
+   "mean_us": 323.301,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 1,
+   "version": "v3_heap",
+   "gallery": 10000,
+   "p50_us": 402.375,
+   "p99_us": 680.458,
+   "p999_us": 953.708,
+   "mean_us": 416.171,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 1,
+   "version": "v4_blocked",
+   "gallery": 10000,
+   "p50_us": 371.25,
+   "p99_us": 742.75,
+   "p999_us": 1066.75,
+   "mean_us": 394.307,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 1,
+   "version": "v5_ilp",
+   "gallery": 10000,
+   "p50_us": 323.458,
+   "p99_us": 341.417,
+   "p999_us": 350.125,
+   "mean_us": 321.062,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 1,
+   "version": "v0_naive",
+   "gallery": 50000,
+   "p50_us": 8215.125,
+   "p99_us": 13105.5,
+   "p999_us": 21925.833,
+   "mean_us": 8483.392,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 1,
+   "version": "v1_simd",
+   "gallery": 50000,
+   "p50_us": 1855.709,
+   "p99_us": 3803.875,
+   "p999_us": 6169.0,
+   "mean_us": 1979.167,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 1,
+   "version": "v2_prealloc",
+   "gallery": 50000,
+   "p50_us": 1863.292,
+   "p99_us": 4477.459,
+   "p999_us": 11146.125,
+   "mean_us": 2101.37,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 1,
+   "version": "v3_heap",
+   "gallery": 50000,
+   "p50_us": 2177.584,
+   "p99_us": 4515.334,
+   "p999_us": 10261.375,
+   "mean_us": 2341.711,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 1,
+   "version": "v4_blocked",
+   "gallery": 50000,
+   "p50_us": 2028.5,
+   "p99_us": 3841.333,
+   "p999_us": 10367.292,
+   "mean_us": 2116.542,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 1,
+   "version": "v5_ilp",
+   "gallery": 50000,
+   "p50_us": 1802.542,
+   "p99_us": 3171.917,
+   "p999_us": 6640.333,
+   "mean_us": 1923.45,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 2,
+   "version": "v0_naive",
+   "gallery": 1000,
+   "p50_us": 165.875,
+   "p99_us": 219.042,
+   "p999_us": 290.416,
+   "mean_us": 175.13,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 2,
+   "version": "v1_simd",
+   "gallery": 1000,
+   "p50_us": 36.417,
+   "p99_us": 39.25,
+   "p999_us": 68.625,
+   "mean_us": 36.239,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 2,
+   "version": "v2_prealloc",
+   "gallery": 1000,
+   "p50_us": 40.708,
+   "p99_us": 67.084,
+   "p999_us": 99.75,
+   "mean_us": 42.074,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 2,
+   "version": "v3_heap",
+   "gallery": 1000,
+   "p50_us": 50.833,
+   "p99_us": 66.083,
+   "p999_us": 114.583,
+   "mean_us": 50.847,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 2,
+   "version": "v4_blocked",
+   "gallery": 1000,
+   "p50_us": 48.542,
+   "p99_us": 54.625,
+   "p999_us": 61.834,
+   "mean_us": 48.713,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 2,
+   "version": "v5_ilp",
+   "gallery": 1000,
+   "p50_us": 39.417,
+   "p99_us": 46.166,
+   "p999_us": 53.916,
+   "mean_us": 40.039,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 2,
+   "version": "v0_naive",
+   "gallery": 10000,
+   "p50_us": 1667.292,
+   "p99_us": 2079.333,
+   "p999_us": 2991.375,
+   "mean_us": 1694.334,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 2,
+   "version": "v1_simd",
+   "gallery": 10000,
+   "p50_us": 351.25,
+   "p99_us": 401.583,
+   "p999_us": 579.083,
+   "mean_us": 360.066,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 2,
+   "version": "v2_prealloc",
+   "gallery": 10000,
+   "p50_us": 429.458,
+   "p99_us": 1341.875,
+   "p999_us": 5083.375,
+   "mean_us": 479.425,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 2,
+   "version": "v3_heap",
+   "gallery": 10000,
+   "p50_us": 462.084,
+   "p99_us": 933.75,
+   "p999_us": 1757.417,
+   "mean_us": 492.253,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 2,
+   "version": "v4_blocked",
+   "gallery": 10000,
+   "p50_us": 464.583,
+   "p99_us": 745.042,
+   "p999_us": 1301.958,
+   "mean_us": 457.415,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 2,
+   "version": "v5_ilp",
+   "gallery": 10000,
+   "p50_us": 328.458,
+   "p99_us": 430.5,
+   "p999_us": 448.791,
+   "mean_us": 339.962,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 2,
+   "version": "v0_naive",
+   "gallery": 50000,
+   "p50_us": 9032.208,
+   "p99_us": 19801.167,
+   "p999_us": 33428.459,
+   "mean_us": 9866.005,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 2,
+   "version": "v1_simd",
+   "gallery": 50000,
+   "p50_us": 1846.917,
+   "p99_us": 3980.75,
+   "p999_us": 10573.708,
+   "mean_us": 1986.144,
+   "heap_allocations_per_query": 3.0
+  },
+  {
+   "round": 2,
+   "version": "v2_prealloc",
+   "gallery": 50000,
+   "p50_us": 2163.542,
+   "p99_us": 4126.625,
+   "p999_us": 8707.125,
+   "mean_us": 2375.35,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 2,
+   "version": "v3_heap",
+   "gallery": 50000,
+   "p50_us": 1858.792,
+   "p99_us": 3535.5,
+   "p999_us": 8137.25,
+   "mean_us": 1963.237,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 2,
+   "version": "v4_blocked",
+   "gallery": 50000,
+   "p50_us": 1851.5,
+   "p99_us": 4257.583,
+   "p999_us": 10708.583,
+   "mean_us": 1938.419,
+   "heap_allocations_per_query": 0.0
+  },
+  {
+   "round": 2,
+   "version": "v5_ilp",
+   "gallery": 50000,
+   "p50_us": 1623.291,
+   "p99_us": 2376.333,
+   "p999_us": 4645.875,
+   "mean_us": 1692.906,
+   "heap_allocations_per_query": 0.0
+  }
+ ]
+}

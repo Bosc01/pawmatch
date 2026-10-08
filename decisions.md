@@ -74,3 +74,10 @@ All fixed before the first Milestone 2 run and not tuned on any data:
 - Run (c) augmentation: each training photo gets one random corruption from that set with probability 0.5.
 - Significance: a two-sided paired sign-flip permutation test with dogs as units, 10,000 permutations, on per-query rank-1. Benjamini-Hochberg runs across every test in `pawmatch/significance.py`.
 - The vecstore ablation did not run: github.com/Bosc01/vecstore at commit ac7603b has no `pyproject.toml` or `setup.py`, so pip cannot install it.
+
+## Milestone 4 setup (2026-10-08)
+
+- Gallery padding: there are only 7,013 DogFaceNet DINOv2 embeddings outside the test queries (the test gallery plus every validation and training photo). The 10K and 50K galleries are filled past that with random unit vectors, labeled synthetic in `results/m4_latency.json`. Brute-force latency does not depend on vector values. The queries are the 1,350 test-query embeddings, padded the same way to 10,000.
+- Parity: every query is scored against the first 1,000 gallery rows and compared with float64 scores computed in Python. The tolerance is 1e-5 absolute.
+- Benchmark: top 100, one thread, one query at a time, 1,000 warm-up queries, then 10,000 timed queries. There are three rounds, each running every size and pass once, and the reported figure is the median across rounds.
+- Heap allocations are counted by replacing the global `operator new` in the test and benchmark binaries.
