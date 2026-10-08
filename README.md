@@ -53,6 +53,6 @@ make test        # Python tests
 
 Every Python target reads `CONFIG`, which defaults to `configs/dogfacenet.toml`. Use `CONFIG=configs/petface.toml` for PetFace.
 
-## Data and decisions
+## Plan, data, and decisions
 
-See [DATA.md](DATA.md) and [decisions.md](decisions.md).
+See [BRIEF.md](BRIEF.md) for the plan and every decision, [decisions.md](decisions.md) for the reasoning, and [DATA.md](DATA.md) for data access and protocols.
