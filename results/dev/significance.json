@@ -1,6 +1,6 @@
 {
  "dataset": "dogfacenet",
- "code_commit": "5730d55",
+ "code_commit": "7ad4dff",
  "test": "two-sided paired sign-flip permutation test, dogs as units",
  "permutations": 10000,
  "correction": "Benjamini-Hochberg across every test that ran",
