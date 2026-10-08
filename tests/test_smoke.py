@@ -27,5 +27,6 @@ def test_smoke_500_dogs():
     assert 0.1 < res["closed_set"]["rank1"]["value"] <= 1  # chance is 1/500
     assert 0.5 < res["verification"]["auc"]["value"] <= 1
 
-    losses = train.fit(model, tf, items, hard_negative_weight=1.0, epochs=1, max_steps=2)
-    assert len(losses) == 2 and all(np.isfinite(list(step.values())).all() for step in losses)
+    log = train.fit(model, tf, items, hard_negative_weight=1.0, steps=2)  # one head step, one full step
+    assert [r["phase"] for r in log] == ["head", "full"]
+    assert all(np.isfinite([r["arcface"], r["batch_hard"]]).all() for r in log)

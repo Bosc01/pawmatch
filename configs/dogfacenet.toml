@@ -10,5 +10,5 @@ unknown_frac = 0.5
 bootstrap = 1000
 
 [train]
-epochs = 1
-max_steps = 5  # smoke test only; full fine-tunes are reserved for PetFace
+steps = 5  # smoke test only; full fine-tunes are reserved for PetFace
+precision = "fp32"

@@ -11,4 +11,5 @@ unknown_frac = 0.5
 bootstrap = 1000
 
 [train]
-epochs = 10  # the paper trained 10 epochs; confirm before the first PetFace run
+steps = 18000  # fixed before the first run (decisions.md)
+precision = "fp32"  # fp32 or bf16; pending decision (decisions.md)

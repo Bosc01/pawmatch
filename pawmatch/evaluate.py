@@ -81,9 +81,14 @@ def compute(items, emb, pairs, seed, unknown_frac, n_boot):
     return out
 
 
-def _commit():
+def commit():
     git = lambda *a: subprocess.run(["git", *a], capture_output=True, text=True).stdout.strip()
-    return "uncommitted changes" if git("status", "--porcelain", "pawmatch") else git("rev-parse", "--short", "HEAD")
+    return "uncommitted changes" if git("status", "--porcelain", "pawmatch", "cpp") else git("rev-parse", "--short", "HEAD")
+
+
+def hardware():
+    sysctl = lambda key: subprocess.run(["sysctl", "-n", key], capture_output=True, text=True).stdout.strip()
+    return f"{sysctl('machdep.cpu.brand_string')}, {int(sysctl('hw.memsize')) // 2**30} GB RAM"
 
 
 def main(config, tag):
@@ -100,7 +105,7 @@ def main(config, tag):
         "dataset": cfg["dataset"]["name"], "model": tag, "split": "test", "split_sha256": sha,
         "protocol_seed": p["seed"], "bootstrap_resamples": p["bootstrap"],
         "verification_pairs": "official verification.csv" if official else "generated, PetFace protocol",
-        "code_commit": _commit(),
+        "code_commit": commit(),
         **compute(items, z["emb"], pairs, p["seed"], p["unknown_frac"], p["bootstrap"]),
     }
     out = cfg["results_dir"] / f"m1_{tag}.json"
