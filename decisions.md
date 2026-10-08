@@ -89,3 +89,14 @@ The mutual nearest-neighbour patch rerank stays in the project as a reported neg
 How the stage-1 and stage-2 fusion was chosen: no weight was tuned. One fusion ranks by the stage-2 score alone. The other is reciprocal rank fusion, which weights the two ranks equally with k = 60 from Cormack et al. (SIGIR 2009). Both were in the code before the first run (commit bb653c2 introduces `RRF_K = 60`, and no later commit changes it). No split, test or otherwise, was used to choose them, so nothing needed to be refit on val_a.
 
 A small cross-attention reranking head, from the original plan, is built after PetFace arrives and is trained on the PetFace train split only.
+
+## Open-set calibration (2026-10-08)
+
+This replaces the first version, which took the identification threshold from the top scores of unknown val_a queries. That gallery was smaller than the test gallery, so the achieved test FAR overshot the target: 1.96% against 1% for DINOv2 on DogFaceNet development data.
+
+F is the distribution of single impostor scores. It is estimated from every pair of val_a photos that show different dogs.
+
+- **Identification (DIR):** the threshold t solves 1 - F(t)^N = target FAR, with N the test gallery size. That is the chance that an unknown dog's best score passes if its N gallery scores are independent draws from F.
+- **Verification (TAR):** the threshold is the single-pair case, F(t) = 1 - target FAR.
+
+Every result reports the achieved test FAR next to the target. A target is flagged as below resolution when it needs a per-impostor rate under one pair in the number of val_a impostor pairs.

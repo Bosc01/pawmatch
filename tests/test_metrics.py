@@ -63,3 +63,12 @@ def test_threshold_at_far():
     assert (impostors >= t).sum() == 10 and resolution == 1 / 1000
     t, _ = metrics.threshold_at_far(impostors, 0.0001)  # below resolution: accept none
     assert (impostors >= t).sum() == 0
+
+
+def test_threshold_for_gallery():
+    impostors = np.arange(1000) / 1000
+    t, per_impostor, _ = metrics.threshold_for_gallery(impostors, 0.01, 1)
+    assert per_impostor == pytest.approx(0.01) and (impostors >= t).sum() == 10
+    # Two gallery entries: 1 - sqrt(0.99) = 0.0050126 per impostor, so 5 of 1000 may pass.
+    t, per_impostor, _ = metrics.threshold_for_gallery(impostors, 0.01, 2)
+    assert per_impostor == pytest.approx(1 - 0.99 ** 0.5) and (impostors >= t).sum() == 5

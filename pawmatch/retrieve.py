@@ -188,47 +188,56 @@ def _pairs(emb, dogs, thresholds=None):
 
 
 def _best(emb, items, seed, frac):
-    """Open-set protocol: top gallery score and its correctness for every query."""
+    """Open-set protocol: top gallery score and its correctness for every query, and
+    the gallery size."""
     dogs = np.array([d for _, d in items])
     g, q, unknown = data.gallery_query(items, seed, frac)
     best = np.concatenate([emb[q[i:i + CHUNK]] @ emb[g].T for i in range(0, len(q), CHUNK)])
     correct = dogs[g][best.argmax(1)] == dogs[q]
-    return best.max(1), correct, ~np.isin(dogs[q], list(unknown)), dogs[q]
+    return best.max(1), correct, ~np.isin(dogs[q], list(unknown)), dogs[q], len(g)
 
 
 def open_set(cfg, splits, seed, frac, n_boot):
-    """Thresholds calibrated on val_a, applied unchanged to test. TAR uses all pairs of
-    distinct photos. DIR counts a known query only if its top match is the right dog and
-    scores at or above the threshold; FAR on that side is the share of unknown-dog
-    queries whose top score passes. A FAR target below the val_a resolution (one
-    impostor in n) cannot be calibrated and is flagged."""
+    """Thresholds come from val_a and are applied unchanged to test; the achieved test
+    FAR is reported next to every target.
+
+    Both thresholds use F, the distribution of single impostor scores, estimated from
+    every pair of val_a photos of different dogs. Verification (TAR, all pairs of
+    distinct test photos) accepts a pair at or above t with F(t) = 1 - FAR.
+    Identification (DIR) accepts a query's top match at or above t with
+    1 - F(t)^N = FAR, N being the test gallery size: the chance that an unknown dog's
+    best score passes if its N gallery scores were independent draws from F. DIR counts
+    a known query only if its top match is the right dog and passes. A target that needs
+    a per-impostor rate below the val_a resolution (one pair in n) is flagged."""
     out = {}
     for tag in MODELS:
         va, te = _load(cfg, tag, "val_a"), _load(cfg, tag, "test")
         if va is None or te is None:
             continue
         _, _, imp = _pairs(va["emb"], va["dogs"])
-        va_best, _, va_known, _ = _best(va["emb"], splits["val_a"], seed, frac)
-        tv = [metrics.threshold_at_far(imp, f) for f in FARS]
-        ti = [metrics.threshold_at_far(va_best[~va_known], f) for f in FARS]
-        gen, gen_dogs, test_far_v = _pairs(te["emb"], te["dogs"], [t for t, _ in tv])
-        best, correct, known, qd = _best(te["emb"], splits["test"], seed, frac)
+        best, correct, known, qd, n_gallery = _best(te["emb"], splits["test"], seed, frac)
+        tv = [metrics.threshold_for_gallery(imp, f, 1) for f in FARS]
+        ti = [metrics.threshold_for_gallery(imp, f, n_gallery) for f in FARS]
+        gen, gen_dogs, test_far_v = _pairs(te["emb"], te["dogs"], [t for t, _, _ in tv])
         res = {}
         for k, far in enumerate(FARS):
+            (t_v, _, res_v), (t_i, per_i, res_i) = tv[k], ti[k]
             res[f"far_{far}"] = {
                 "verification": {
-                    "threshold": tv[k][0], "val_a_resolution": tv[k][1], "below_resolution": far < tv[k][1],
-                    "tar": evaluate._score(gen >= tv[k][0], gen_dogs, n_boot, seed),
-                    "test_far": float(test_far_v[k])},
+                    "target_far": far, "test_far": float(test_far_v[k]), "threshold": t_v,
+                    "val_a_resolution": res_v, "below_resolution": far < res_v,
+                    "tar": evaluate._score(gen >= t_v, gen_dogs, n_boot, seed)},
                 "identification": {
-                    "threshold": ti[k][0], "val_a_resolution": ti[k][1], "below_resolution": far < ti[k][1],
-                    "dir": evaluate._score((correct & (best >= ti[k][0]))[known], qd[known], n_boot, seed),
-                    "test_far": float((best[~known] >= ti[k][0]).mean())},
+                    "target_far": far, "test_far": float((best[~known] >= t_i).mean()), "threshold": t_i,
+                    "gallery_size": n_gallery, "per_impostor_far": per_i,
+                    "val_a_resolution": res_i, "below_resolution": per_i < res_i,
+                    "dir": evaluate._score((correct & (best >= t_i))[known], qd[known], n_boot, seed)},
             }
-        out[tag] = {"n_val_a_impostor_pairs": len(imp), "n_val_a_unknown_queries": int((~va_known).sum()),
-                    "n_test_genuine_pairs": len(gen), "n_test_known_queries": int(known.sum()),
-                    "n_test_unknown_queries": int((~known).sum()), **res}
-    return {"unknown_frac": frac, "far_targets": list(FARS), "models": out}
+        out[tag] = {"n_val_a_impostor_pairs": len(imp), "n_test_genuine_pairs": len(gen),
+                    "n_test_known_queries": int(known.sum()), "n_test_unknown_queries": int((~known).sum()), **res}
+    return {"unknown_frac": frac, "far_targets": list(FARS),
+            "calibration": "val_a impostor score distribution F; identification threshold solves 1 - F(t)^N = FAR",
+            "models": out}
 
 
 def corruption(cfg, splits, seed, n_boot):

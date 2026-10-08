@@ -1,4 +1,6 @@
 """Retrieval and verification metrics. Tests pin these to hand-computed values."""
+import math
+
 import numpy as np
 from sklearn.metrics import roc_auc_score
 
@@ -69,3 +71,13 @@ def threshold_at_far(impostor_scores, far):
     s = np.sort(np.asarray(impostor_scores))[::-1]
     k = int(np.floor(far * len(s)))  # impostors allowed above the threshold
     return float(np.nextafter(s[k], np.inf)), 1 / len(s)
+
+
+def threshold_for_gallery(impostor_scores, far, n):
+    """Threshold t with 1 - F(t)^n = far, F being the empirical distribution of single
+    impostor scores: an unknown query whose n gallery scores were independent draws
+    from F would pass with probability far. n = 1 is a single-pair threshold.
+    Returns (threshold, per-impostor FAR it needs, resolution 1/len)."""
+    per_impostor = -math.expm1(math.log1p(-far) / n)  # 1 - (1 - far)^(1/n), stable for large n
+    t, resolution = threshold_at_far(impostor_scores, per_impostor)
+    return t, per_impostor, resolution
