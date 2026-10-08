@@ -3,7 +3,7 @@ RUN ?= arcface_bh
 PY = venv/bin/python
 BACKBONES = resnet50_in1k clip_vitb16 dinov2_vits14
 
-.PHONY: data embed eval train retrieve precision-test test readme facts
+.PHONY: data embed eval train retrieve precision-test export cpp cpp-test bench test readme facts
 
 data:
 	$(PY) -m pawmatch.data $(CONFIG)
@@ -27,6 +27,20 @@ retrieve:
 
 precision-test:
 	$(PY) -m pawmatch.train $(CONFIG) precision_test
+
+export:
+	$(PY) -m pawmatch.export $(CONFIG)
+
+cpp:
+	cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
+	cmake --build cpp/build -j
+
+cpp-test: cpp
+	ctest --test-dir cpp/build --output-on-failure
+
+bench: cpp
+	cpp/build/bench data/cache/m4/gallery.bin data/cache/m4/queries.bin > data/cache/m4/bench.json
+	$(PY) -m pawmatch.export --report data/cache/m4/bench.json
 
 test:
 	$(PY) -m pytest -q
