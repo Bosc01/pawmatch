@@ -1,0 +1,13 @@
+name: ci
+on: push
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Unit tests need no torch and no data; the DogFaceNet smoke test skips itself in CI.
+      - run: pip install $(grep -E '^(numpy|scikit-learn|pytest)==' requirements.txt)
+      - run: python -m pytest -q

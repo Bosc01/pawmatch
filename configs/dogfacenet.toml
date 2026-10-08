@@ -1,0 +1,14 @@
+# DogFaceNet: pipeline development and cross-dataset evaluation only. Nothing is tuned on it.
+[dataset]
+name = "dogfacenet"
+images = "data/dogfacenet/after_4_bis"
+seed = 0
+
+[protocol]
+seed = 0
+unknown_frac = 0.5
+bootstrap = 1000
+
+[train]
+epochs = 1
+max_steps = 5  # smoke test only; full fine-tunes are reserved for PetFace

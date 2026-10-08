@@ -1,0 +1,14 @@
+[dataset]
+name = "petface"
+images = "data/PetFace/images"
+split_dir = "data/PetFace/split/dog"
+verification_csv = "data/PetFace/split/dog/verification.csv"
+seed = 0
+
+[protocol]
+seed = 0
+unknown_frac = 0.5
+bootstrap = 1000
+
+[train]
+epochs = 10  # the paper trained 10 epochs; confirm before the first PetFace run
