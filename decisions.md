@@ -57,6 +57,8 @@ Two settings deliberately differ from the timm eval defaults:
 - No center crop, since both datasets are already face crops. timm would crop to 87.5% for ResNet-50 and 90% for CLIP.
 - DINOv2 runs at 224 x 224 instead of 518 x 518.
 
+Decision (2026-10-08): keep the resize to 224 x 224 with no crop for every backbone.
+
 The timm CLIP model was checked against the open_clip reference implementation on 64 DogFaceNet images (`results/dev/clip_reference_check.json`), and the embeddings agree to a minimum cosine similarity of 0.9999998. The official OpenAI preprocessing does not crop a square 224 image, so the CLIP input matches the reference exactly. Nothing changed, and no cache was rebuilt.
 
 ## Milestone 2 parameters (2026-10-08)
