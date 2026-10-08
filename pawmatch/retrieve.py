@@ -147,6 +147,10 @@ def rerank(cfg, splits, seed, n_boot):
                 for m, v in (("rank1", rank == 1), ("rank5", rank <= 5), ("mrr", 1 / rank))}
 
     out = {"stage1_model": STAGE1, "control_model": CONTROL, "top": top_n, "rrf_k": RRF_K,
+           "fusion_selection": ("no fusion weight is tuned: 'mnn' ranks by the stage-2 score alone, and 'rrf' "
+                                "weights the stage-1 and stage-2 ranks equally with k = 60 from Cormack et al. "
+                                "(SIGIR 2009); both were fixed in code before the first run and no split was "
+                                "used to choose them"),
            "gallery_size": len(g), "n_queries": len(q),
            "stage1_recall_at_top": evaluate._score(in_top, qd, n_boot, seed),
            "stage1": summary(stage1_rank)}

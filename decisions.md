@@ -81,3 +81,11 @@ All fixed before the first Milestone 2 run and not tuned on any data:
 - Parity: every query is scored against the first 1,000 gallery rows and compared with float64 scores computed in Python. The tolerance is 1e-5 absolute.
 - Benchmark: top 100, one thread, one query at a time, 1,000 warm-up queries, then 10,000 timed queries. There are three rounds, each running every size and pass once, and the reported figure is the median across rounds.
 - Heap allocations are counted by replacing the global `operator new` in the test and benchmark binaries.
+
+## Patch rerank outcome (2026-10-08)
+
+The mutual nearest-neighbour patch rerank stays in the project as a reported negative result. On DogFaceNet development data it lowered rank-1 below stage 1 under both fusions, and the ImageNet control arm was lower still (`results/dev/m2_rerank.json`).
+
+How the stage-1 and stage-2 fusion was chosen: no weight was tuned. One fusion ranks by the stage-2 score alone. The other is reciprocal rank fusion, which weights the two ranks equally with k = 60 from Cormack et al. (SIGIR 2009). Both were in the code before the first run (commit bb653c2 introduces `RRF_K = 60`, and no later commit changes it). No split, test or otherwise, was used to choose them, so nothing needed to be refit on val_a.
+
+A small cross-attention reranking head, from the original plan, is built after PetFace arrives and is trained on the PetFace train split only.
