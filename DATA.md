@@ -10,7 +10,7 @@ No images are stored in this repository. Everything under `data/` is ignored by 
 
 ### Access
 
-Status: not yet requested (2026-10-08).
+Status: no download link yet (2026-10-08).
 
 Access is by Google Form only: https://docs.google.com/forms/d/e/1FAIpQLSfRPJaCmU6oQ4X_uB6H-EM5MSeczKczZxbQ5H9FMRS4KNY59w/viewform
 
@@ -60,9 +60,48 @@ data/PetFace/
   annotations/dog.csv
 ```
 
-## DogFaceNet (fallback, not downloaded)
+## DogFaceNet (secondary dataset)
 
-- Source: https://zenodo.org/records/12578449 (code at https://github.com/GuillaumeMougeot/DogFaceNet)
-- License: CC BY 4.0. Open download, no form.
-- Size: 1,393 dogs in the 224 x 224 resized set (75.6 MB zip); 2,522 folders in the large set (1.8 GB zip). The Zenodo page warns that some large-set folders contain more than one dog.
-- No breed or color annotations.
+### License and attribution
+
+Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0), https://creativecommons.org/licenses/by/4.0/. No changes are made to the images; any derived files (embeddings, crops) are marked as derived from this dataset.
+
+Dataset: Guillaume Mougeot, "The DogFaceNet datasets", version 1, Zenodo, 2024. DOI 10.5281/zenodo.12578449. https://zenodo.org/records/12578449
+
+Paper: Guillaume Mougeot, Dewei Li, and Shuai Jia, "A Deep Learning Approach for Dog Face Verification and Recognition", PRICAI 2019: Trends in Artificial Intelligence, Springer, pp. 418 to 430. DOI 10.1007/978-3-030-29894-4_34.
+
+Code: https://github.com/GuillaumeMougeot/DogFaceNet (MIT).
+
+### Use in this project
+
+Pipeline building, tests, and a later cross-dataset evaluation only. No model, hyperparameter, or threshold is tuned on it.
+
+### Local copy (downloaded 2026-10-08)
+
+- File: `DogFaceNet_224resized.zip`, 75,571,850 bytes, MD5 `010c207e202bb499039452aa7363b015` (matches Zenodo).
+- Contents, counted locally: 1,393 dogs, 8,363 JPEG images, 2 to 41 images per dog. No other file types.
+- No breed, sex, or color annotations.
+
+```
+data/dogfacenet/after_4_bis/<id>/<id>.<n>.jpg
+```
+
+## Decisions (2026-10-08)
+
+### Splits and protocols (PetFace dogs)
+
+- Use the official split files in `split/dog/`. No new split is drawn.
+- The official validation dogs are split in half by identity. Val-A calibrates the no-match threshold (Milestone 2). Val-B trains the learned ranker (Milestone 3). The split is frozen and hashed.
+- Comparison with the paper: verification AUC on the official `verification.csv`, against Table 3.
+- Gallery/query and open-set results run on the official test dogs and are reported as protocols defined by this project. They are not compared with the 77.86% re-identification figure, which measures a different task.
+
+### Text attributes (Milestone 3)
+
+- Main results use breed and sex only, the two attributes PetFace provides for dogs. Descriptions generated from them are SYNTHETIC.
+- Coat color is an ablation only. Each dog gets one color label, derived from its photos that are not in the gallery, by a model that is not one of the retrieval backbones (ImageNet ResNet-50, CLIP ViT-B/16, DINOv2 ViT-S/14). These labels are marked MODEL-DERIVED wherever they appear.
+- 200 dogs are hand-labeled by the author to measure the accuracy of the color labels.
+- The ranker is reported with and without color.
+
+### Stay integration (Milestone 5)
+
+On hold until the PetFace authors confirm whether their research-only terms allow it.
