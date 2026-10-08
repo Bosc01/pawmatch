@@ -11,3 +11,16 @@ jobs:
       # Unit tests need no torch and no data; tests that need them skip themselves in CI.
       - run: pip install $(grep -E '^(numpy|scipy|scikit-learn|pillow|faiss-cpu|pytest)==' requirements.txt)
       - run: python -m pytest -q
+  cpp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # There is no dataset in CI, so the parity fixtures are random unit vectors.
+      - run: pip install $(grep -E '^(numpy|scikit-learn)==' requirements.txt)
+      - run: python -m pawmatch.export --synthetic
+      - run: cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build cpp/build -j
+      - run: ctest --test-dir cpp/build --output-on-failure
