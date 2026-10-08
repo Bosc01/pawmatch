@@ -6,7 +6,7 @@
  "protocol_seed": 0,
  "bootstrap_resamples": 1000,
  "verification_pairs": "generated, PetFace protocol",
- "code_commit": "41db12f",
+ "code_commit": "bb653c2",
  "closed_set": {
   "n_gallery": 279,
   "n_queries": 1350,

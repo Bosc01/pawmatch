@@ -1,0 +1,95 @@
+{
+ "dataset": "dogfacenet",
+ "split": "test",
+ "split_sha256": "e913cb14af098b4610c56ca2d1890b535d9e8be14a465da220e551d0122d28db",
+ "protocol_seed": 0,
+ "bootstrap_resamples": 1000,
+ "code_commit": "bb653c2",
+ "model": "dinov2_vits14",
+ "hardware": "Apple M5, 24 GB RAM",
+ "faiss": "1.15.1",
+ "threads": 1,
+ "ann": {
+  "database_size": 7013,
+  "n_queries": 1350,
+  "k": 10,
+  "flat": {
+   "p50_ms": 0.18954207189381123,
+   "p99_ms": 0.2008005720563233
+  },
+  "hnsw": {
+   "M": 32,
+   "ef_construction": 40,
+   "build_seconds": 0.2746492091100663,
+   "sweep": [
+    {
+     "ef_search": 16,
+     "recall_at_10": 0.9843703703703705,
+     "p50_ms": 0.0189170241355896,
+     "p99_ms": 0.02831284888088703
+    },
+    {
+     "ef_search": 32,
+     "recall_at_10": 0.9960000000000001,
+     "p50_ms": 0.02950010821223259,
+     "p99_ms": 0.04384256433695554
+    },
+    {
+     "ef_search": 64,
+     "recall_at_10": 0.9994074074074073,
+     "p50_ms": 0.04770804662257433,
+     "p99_ms": 0.06989927496761084
+    },
+    {
+     "ef_search": 128,
+     "recall_at_10": 1.0,
+     "p50_ms": 0.0813750084489584,
+     "p99_ms": 0.11196180712431669
+    },
+    {
+     "ef_search": 256,
+     "recall_at_10": 1.0,
+     "p50_ms": 0.16279146075248718,
+     "p99_ms": 0.2045304630883038
+    }
+   ]
+  }
+ },
+ "vecstore": "not run: github.com/Bosc01/vecstore at commit ac7603b has no pyproject.toml or setup.py, so pip cannot install it",
+ "identification": {
+  "gallery_size": 279,
+  "n_queries": 1350,
+  "flat": {
+   "recall_at_1": {
+    "value": 0.7792592592592592,
+    "ci95": [
+     0.7300519833886935,
+     0.8207796780002978
+    ]
+   },
+   "recall_at_100": {
+    "value": 0.9977777777777778,
+    "ci95": [
+     0.9952635571176358,
+     1.0
+    ]
+   }
+  },
+  "hnsw_ef64": {
+   "recall_at_1": {
+    "value": 0.7792592592592592,
+    "ci95": [
+     0.7300519833886935,
+     0.8207796780002978
+    ]
+   },
+   "recall_at_100": {
+    "value": 0.9977777777777778,
+    "ci95": [
+     0.9952635571176358,
+     1.0
+    ]
+   }
+  }
+ }
+}
