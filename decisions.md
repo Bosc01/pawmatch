@@ -12,7 +12,7 @@ Three PetFace fine-tunes, replacing the original limit of two:
 
 (a) against (b) is the hard-negative ablation. Both use the same sampler, schedule, seed, and warm-up, so the loss term is the only difference. Head warm-up is part of each run and does not count against the budget. DogFaceNet smoke runs (at most 20 steps, enforced in code) do not count either. The code refuses to repeat a PetFace run whose checkpoint already exists.
 
-Pending confirmation: "better" is defined as higher closed-set rank-1 on val_a, so that run (c) is not chosen on test data.
+Rule for run (c), accepted 2026-10-08: the arm for run (c) is whichever of (a) and (b) has the higher closed-set rank-1 on val_a. The measurement uses the Milestone 1 gallery and query protocol with the same seed, so run (c) is never chosen on test data. On an exact tie, arm (a) is used, as the simpler loss. The choice and both val_a numbers are recorded in `results/` before run (c) starts.
 
 ## Head warm-up (added 2026-10-08, after the 5-step smoke test)
 
