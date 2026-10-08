@@ -58,6 +58,7 @@ int main(int argc, char** argv) {
             bench("v2_prealloc", [&](const float* q) { s.topk_v2_prealloc(q, out); sink += out[0].score; });
             bench("v3_heap", [&](const float* q) { s.topk_v3_heap(q, out); sink += out[0].score; });
             bench("v4_blocked", [&](const float* q) { s.topk_v4_blocked(q, out); sink += out[0].score; });
+            bench("v5_ilp", [&](const float* q) { s.topk_v5_ilp(q, out); sink += out[0].score; });
         }
     }
     std::printf("\n]}\n");

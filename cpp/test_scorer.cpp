@@ -42,28 +42,31 @@ TEST(Parity, ScoresMatchPythonWithin1e5On10000Queries) {
     ASSERT_EQ(d.queries.rows, 10000u);
     ASSERT_EQ(d.reference.rows, d.queries.rows);
     ASSERT_EQ(d.parity.rows % 4, 0u);
-    double worst[3] = {0, 0, 0};  // scalar, simd, four-row simd
-    float four[4];
+    double worst[4] = {0, 0, 0, 0};  // scalar, simd, four-row simd, four-row simd with more chains
+    float four[4], ilp[4];
     for (size_t i = 0; i < d.queries.rows; ++i) {
         const float* q = d.queries.row(i);
         const float* ref = d.reference.row(i);
         for (size_t j = 0; j < d.parity.rows; j += 4) {
             dot4_simd(q, d.parity.row(j), d.parity.dim, four);
+            dot4_ilp_simd(q, d.parity.row(j), d.parity.dim, ilp);
             for (size_t r = 0; r < 4; ++r) {
                 worst[0] = std::max(worst[0], double(std::abs(dot_scalar(q, d.parity.row(j + r), d.parity.dim) - ref[j + r])));
                 worst[1] = std::max(worst[1], double(std::abs(dot_simd(q, d.parity.row(j + r), d.parity.dim) - ref[j + r])));
                 worst[2] = std::max(worst[2], double(std::abs(four[r] - ref[j + r])));
+                worst[3] = std::max(worst[3], double(std::abs(ilp[r] - ref[j + r])));
             }
         }
     }
-    std::printf("max abs error against Python: scalar %.3g, simd %.3g, four-row simd %.3g\n", worst[0], worst[1], worst[2]);
+    std::printf("max abs error against Python: scalar %.3g, simd %.3g, four-row simd %.3g, four-row simd with more chains %.3g\n",
+                worst[0], worst[1], worst[2], worst[3]);
     for (double w : worst) EXPECT_LE(w, 1e-5);
 }
 
 TEST(TopK, EveryPassMatchesPythonTopKScores) {
     const Data& d = data();
     Scorer s(d.parity, K);
-    std::vector<Hit> v2(K), v3(K), v4(K);
+    std::vector<Hit> v2(K), v3(K), v4(K), v5(K);
     std::vector<float> ref;
     for (size_t i = 0; i < d.queries.rows; ++i) {
         const float* q = d.queries.row(i);
@@ -73,7 +76,8 @@ TEST(TopK, EveryPassMatchesPythonTopKScores) {
         s.topk_v2_prealloc(q, v2);
         s.topk_v3_heap(q, v3);
         s.topk_v4_blocked(q, v4);
-        for (const std::vector<Hit>* hits : std::initializer_list<const std::vector<Hit>*>{&v0, &v1, &v2, &v3, &v4})
+        s.topk_v5_ilp(q, v5);
+        for (const std::vector<Hit>* hits : std::initializer_list<const std::vector<Hit>*>{&v0, &v1, &v2, &v3, &v4, &v5})
             for (size_t j = 0; j < K; ++j) ASSERT_NEAR((*hits)[j].score, ref[j], 1e-5) << "query " << i << " rank " << j;
     }
 }
@@ -81,16 +85,18 @@ TEST(TopK, EveryPassMatchesPythonTopKScores) {
 TEST(TopK, HeapPassesMatchSortOn50KGallery) {
     const Data& d = data();
     Scorer s(d.gallery, K);
-    std::vector<Hit> v2(K), v3(K), v4(K);
+    std::vector<Hit> v2(K), v3(K), v4(K), v5(K);
     for (size_t i = 0; i < 200; ++i) {
         const float* q = d.queries.row(i);
         s.topk_v2_prealloc(q, v2);
         s.topk_v3_heap(q, v3);
         s.topk_v4_blocked(q, v4);
+        s.topk_v5_ilp(q, v5);
         for (size_t j = 0; j < K; ++j) {
             ASSERT_EQ(v3[j].index, v2[j].index) << "query " << i << " rank " << j;  // same dot product
             ASSERT_EQ(v3[j].score, v2[j].score);
             ASSERT_NEAR(v4[j].score, v3[j].score, 1e-6);  // different summation order
+            ASSERT_NEAR(v5[j].score, v3[j].score, 1e-6);
         }
     }
 }
@@ -104,6 +110,7 @@ TEST(Allocations, PreallocatedPassesAllocateNothingPerQuery) {
         s.topk_v2_prealloc(d.queries.row(i), out);
         s.topk_v3_heap(d.queries.row(i), out);
         s.topk_v4_blocked(d.queries.row(i), out);
+        s.topk_v5_ilp(d.queries.row(i), out);
     }
     EXPECT_EQ(g_allocations.load() - before, 0u);
     before = g_allocations.load();  // the counter itself works: v0 allocates on every query

@@ -72,6 +72,21 @@ void dot4_simd(const float* q, const float* r, size_t d, float out[4]) {
         for (int j = 0; j < 4; ++j) out[j] += q[i] * r[j * d + i];
 }
 
+void dot4_ilp_simd(const float* q, const float* r, size_t d, float out[4]) {
+    float32x4_t a[4][4];
+    for (auto& row : a)
+        for (auto& v : row) v = vdupq_n_f32(0);
+    size_t i = 0;
+    for (; i + 16 <= d; i += 16) {
+        const float32x4_t x[4] = {vld1q_f32(q + i), vld1q_f32(q + i + 4), vld1q_f32(q + i + 8), vld1q_f32(q + i + 12)};
+        for (int j = 0; j < 4; ++j)
+            for (int c = 0; c < 4; ++c) a[j][c] = vfmaq_f32(a[j][c], x[c], vld1q_f32(r + j * d + i + 4 * c));
+    }
+    for (int j = 0; j < 4; ++j) out[j] = vaddvq_f32(vaddq_f32(vaddq_f32(a[j][0], a[j][1]), vaddq_f32(a[j][2], a[j][3])));
+    for (; i < d; ++i)
+        for (int j = 0; j < 4; ++j) out[j] += q[i] * r[j * d + i];
+}
+
 #elif defined(__AVX2__) && defined(__FMA__)
 
 static float hsum(__m256 v) {
@@ -109,6 +124,22 @@ void dot4_simd(const float* q, const float* r, size_t d, float out[4]) {
         for (int j = 0; j < 4; ++j) out[j] += q[i] * r[j * d + i];
 }
 
+void dot4_ilp_simd(const float* q, const float* r, size_t d, float out[4]) {
+    __m256 a[4][2];
+    for (auto& row : a) row[0] = row[1] = _mm256_setzero_ps();
+    size_t i = 0;
+    for (; i + 16 <= d; i += 16) {
+        const __m256 x0 = _mm256_loadu_ps(q + i), x1 = _mm256_loadu_ps(q + i + 8);
+        for (int j = 0; j < 4; ++j) {
+            a[j][0] = _mm256_fmadd_ps(x0, _mm256_loadu_ps(r + j * d + i), a[j][0]);
+            a[j][1] = _mm256_fmadd_ps(x1, _mm256_loadu_ps(r + j * d + i + 8), a[j][1]);
+        }
+    }
+    for (int j = 0; j < 4; ++j) out[j] = hsum(_mm256_add_ps(a[j][0], a[j][1]));
+    for (; i < d; ++i)
+        for (int j = 0; j < 4; ++j) out[j] += q[i] * r[j * d + i];
+}
+
 #else
 
 float dot_simd(const float* a, const float* b, size_t d) { return dot_scalar(a, b, d); }
@@ -116,6 +147,8 @@ float dot_simd(const float* a, const float* b, size_t d) { return dot_scalar(a, 
 void dot4_simd(const float* q, const float* r, size_t d, float out[4]) {
     for (int j = 0; j < 4; ++j) out[j] = dot_scalar(q, r + j * d, d);
 }
+
+void dot4_ilp_simd(const float* q, const float* r, size_t d, float out[4]) { dot4_simd(q, r, d, out); }
 
 #endif
 
@@ -183,15 +216,20 @@ void Scorer::topk_v3_heap(const float* q, std::span<Hit> out) {
     heap_select([&](uint32_t i, float* s) { s[0] = dot_simd(q, g_.row(i), g_.dim); return 1u; }, out);
 }
 
-void Scorer::topk_v4_blocked(const float* q, std::span<Hit> out) {
-    heap_select([&](uint32_t i, float* s) {
-        if (i + 4 <= g_.rows) {
-            dot4_simd(q, g_.row(i), g_.dim, s);
+template <void (*Dot4)(const float*, const float*, size_t, float*)>
+static auto four_rows(const Matrix& g, const float* q) {
+    return [&g, q](uint32_t i, float* s) {
+        if (i + 4 <= g.rows) {
+            Dot4(q, g.row(i), g.dim, s);
             return 4u;
         }
-        s[0] = dot_simd(q, g_.row(i), g_.dim);
+        s[0] = dot_simd(q, g.row(i), g.dim);
         return 1u;
-    }, out);
+    };
 }
+
+void Scorer::topk_v4_blocked(const float* q, std::span<Hit> out) { heap_select(four_rows<dot4_simd>(g_, q), out); }
+
+void Scorer::topk_v5_ilp(const float* q, std::span<Hit> out) { heap_select(four_rows<dot4_ilp_simd>(g_, q), out); }
 
 }  // namespace pawmatch
