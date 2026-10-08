@@ -19,7 +19,7 @@ def test_report_never_reads_results_dev(tmp_path, monkeypatch):
     (tmp_path / "results" / "dev").mkdir(parents=True)
     (tmp_path / "results" / "dev" / "m1_dev.json").write_text(json.dumps(_result(DEV)))
     (tmp_path / "results" / "m1_real.json").write_text(json.dumps(_result(REAL)))
-    (tmp_path / "README.md").write_text("<!-- results:start -->\n<!-- results:end -->\n")
+    (tmp_path / "README.md").write_text("<!-- m1:start -->\n<!-- m1:end -->\n<!-- m4:start -->\n<!-- m4:end -->\n")
     monkeypatch.chdir(tmp_path)
 
     real_open = io.open

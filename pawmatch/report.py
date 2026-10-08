@@ -30,11 +30,31 @@ def m1_table(results):
     return "\n".join(lines)
 
 
+def m4_table(results):
+    r = results.get("m4_latency.json")
+    if not r:
+        return "No C++ benchmark yet."
+    rows = ", ".join(f"{int(size):,} rows: {g['real']:,} real and {g['synthetic']:,} synthetic"
+                     for size, g in r["gallery_rows"].items())
+    lines = [f"{r['hardware']}, {r['threads']} thread, top {r['k']}, one query at a time. Each figure is the median "
+             f"across {r['rounds']} rounds of that round's percentile over {r['timed_queries']:,} queries. "
+             f"Gallery {rows}; synthetic rows are random unit vectors, and brute-force latency does not "
+             f"depend on vector values. Real rows are {r['vectors']['source']}.", "",
+             "| Gallery | Version | p50 (us) | p99 (us) | p99.9 (us) | Heap allocations per query |",
+             "|---|---|---|---|---|---|"]
+    lines += [f"| {s['gallery']:,} | {s['version']} | {s['p50_us']:.1f} | {s['p99_us']:.1f} | {s['p999_us']:.1f} | "
+              f"{s['heap_allocations_per_query']:g} |" for s in r["summary"]]
+    return "\n".join(lines)
+
+
+SECTIONS = {"m1": m1_table, "m4": m4_table}
+
+
 def readme(path="README.md", root="results"):
-    text = Path(path).read_text()
-    table = m1_table(load_results(root))
-    text = re.sub(r"(<!-- results:start -->\n).*?(<!-- results:end -->)",
-                  lambda m: m[1] + table + "\n" + m[2], text, flags=re.S)
+    text, results = Path(path).read_text(), load_results(root)
+    for name, table in SECTIONS.items():
+        text = re.sub(rf"(<!-- {name}:start -->\n).*?(<!-- {name}:end -->)",
+                      lambda m: m[1] + table(results) + "\n" + m[2], text, flags=re.S)
     Path(path).write_text(text)
 
 
