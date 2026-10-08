@@ -1,0 +1,60 @@
+# Decisions
+
+Data, split, and evaluation-protocol decisions are in [DATA.md](DATA.md). This file records training decisions and changes to the original project plan. Numbers below that come from `results/dev/` are DogFaceNet development measurements, not results.
+
+## Fine-tune budget (2026-10-08)
+
+Three PetFace fine-tunes, replacing the original limit of two:
+
+- (a) `arcface`: ArcFace, no hard-negative mining.
+- (b) `arcface_bh`: ArcFace plus batch-hard triplet loss.
+- (c) `augmented`: the better of (a) and (b), plus the Milestone 2 corruption augmentation.
+
+(a) against (b) is the hard-negative ablation. Both use the same sampler, schedule, seed, and warm-up, so the loss term is the only difference. Head warm-up is part of each run and does not count against the budget. DogFaceNet smoke runs (at most 20 steps, enforced in code) do not count either. The code refuses to repeat a PetFace run whose checkpoint already exists.
+
+Pending confirmation: "better" is defined as higher closed-set rank-1 on val_a, so that run (c) is not chosen on test data.
+
+## Head warm-up (added 2026-10-08, after the 5-step smoke test)
+
+Why: in the 5-step smoke test on DogFaceNet (commit 41db12f), fine-tuning lowered DINOv2 rank-1 from 77.93% (frozen) to 71.04% for arm (a) and 74.89% for arm (b). Five steps cannot separate the arms, but the drop matches a known effect: gradients from a randomly initialized head distort pretrained features early in fine-tuning. Kumar et al., "Fine-Tuning can Distort Pretrained Features and Underperform Out-of-Distribution" (ICLR 2022), propose training the head first (LP-FT).
+
+What:
+
+- The first 10% of steps train only the ArcFace head, with the backbone frozen, at head learning rate 1e-3.
+- The backbone then unfreezes at learning rate 1e-5, 100 times below the head (discriminative learning rates, Howard and Ruder, ULMFiT, ACL 2018).
+- Both parameter groups then follow one cosine decay to zero.
+
+How the values were fixed: 10% is a conventional warm-up fraction and was not tuned. Both learning rates are unchanged from the values set before the smoke test. No value was chosen from a DogFaceNet number, and both arms use the same warm-up.
+
+## Training length (2026-10-08)
+
+Each PetFace run is 18,000 steps at batch 64 (32 dogs x 2 photos), of which the first 1,800 are head warm-up. The length is fixed before the first run and does not change when the real `train.csv` count is known.
+
+Basis: the PetFace ArcFace recipe trains 10 epochs (`src/configs/dog.py`). Taking 70% of 168,348 dog photos, about 117,844, as the training set, 10 epochs is about 1.18 million image presentations, or about 18,400 steps at batch 64. This was rounded down to 18,000.
+
+## Mixed precision (2026-10-08)
+
+Speed test only, on DogFaceNet: 20 steps of arm (b) in fp32 and in bf16 autocast from the same seed, on an Apple M5 with 24 GB RAM (`results/dev/precision_test.json`). The first step of each phase is excluded from the medians.
+
+| | fp32 | bf16 |
+|---|---|---|
+| Median seconds per full step | 2.68 | 1.70 |
+| Median seconds per head-only step (one sample) | 0.68 | 0.25 |
+| Estimated hours per 18,000-step PetFace run | 12.4 | 7.8 |
+
+The largest absolute difference between the two ArcFace loss curves over the 20 steps was 0.0131.
+
+bf16 was tested instead of fp16 because it needs no gradient scaler. The losses stay in fp32 in both modes.
+
+Pending decision: `configs/petface.toml` stays at fp32 until the precision for PetFace runs is chosen.
+
+## Preprocessing check (2026-10-08)
+
+Each backbone uses the mean, standard deviation, and interpolation from its own timm pretrained config, and `tests/test_embed.py` pins them: ImageNet constants for ResNet-50 and DINOv2, OpenAI CLIP constants for CLIP.
+
+Two settings deliberately differ from the timm eval defaults:
+
+- No center crop, since both datasets are already face crops. timm would crop to 87.5% for ResNet-50 and 90% for CLIP.
+- DINOv2 runs at 224 x 224 instead of 518 x 518.
+
+The timm CLIP model was checked against the open_clip reference implementation on 64 DogFaceNet images (`results/dev/clip_reference_check.json`), and the embeddings agree to a minimum cosine similarity of 0.9999998. The official OpenAI preprocessing does not crop a square 224 image, so the CLIP input matches the reference exactly. Nothing changed, and no cache was rebuilt.

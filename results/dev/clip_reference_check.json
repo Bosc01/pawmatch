@@ -1,0 +1,9 @@
+{
+ "check": "timm vit_base_patch16_clip_224.openai vs open_clip ViT-B-16 openai, same input tensors (official OpenAI preprocessing)",
+ "images": "every 130th DogFaceNet image, first 64",
+ "open_clip": "3.3.0",
+ "n_images": 64,
+ "min_cosine": 0.9999997615814209,
+ "mean_cosine": 1.0,
+ "official_preprocess": "Compose(\n    Resize(size=224, interpolation=bicubic, max_size=None, antialias=True)\n    CenterCrop(size=(224, 224))\n    MaybeConvertMode()\n    MaybeToTensor()\n    Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))\n)"
+}
