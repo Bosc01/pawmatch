@@ -1,0 +1,81 @@
+{
+ "dataset": "dogfacenet",
+ "model": "arcface_bh",
+ "split": "test",
+ "split_sha256": "e913cb14af098b4610c56ca2d1890b535d9e8be14a465da220e551d0122d28db",
+ "protocol_seed": 0,
+ "bootstrap_resamples": 1000,
+ "verification_pairs": "generated, PetFace protocol",
+ "code_commit": "41db12f",
+ "closed_set": {
+  "n_gallery": 279,
+  "n_queries": 1350,
+  "n_query_dogs": 279,
+  "rank1": {
+   "value": 0.7488888888888889,
+   "ci95": [
+    0.698405708229928,
+    0.7933521896197541
+   ]
+  },
+  "rank5": {
+   "value": 0.9148148148148149,
+   "ci95": [
+    0.8819910785907802,
+    0.9441970154235807
+   ]
+  },
+  "mrr": {
+   "value": 0.8207355884835104,
+   "ci95": [
+    0.7806110629668364,
+    0.8563562124517483
+   ]
+  }
+ },
+ "open_set": {
+  "unknown_frac": 0.5,
+  "n_gallery": 139,
+  "n_known_queries": 637,
+  "n_unknown_queries": 713,
+  "rank1_known": {
+   "value": 0.8414442700156985,
+   "ci95": [
+    0.7963988186768457,
+    0.883499912005397
+   ]
+  },
+  "detection_auroc": {
+   "value": 0.8092214337455773,
+   "ci95": [
+    0.7628316428679776,
+    0.8526222482933211
+   ]
+  }
+ },
+ "map_leave_one_out": {
+  "n_queries": 1629,
+  "value": 0.804611329262496,
+  "ci95": [
+   0.7807238324262189,
+   0.8261139602286536
+  ]
+ },
+ "verification": {
+  "n_pairs": 558,
+  "auc": {
+   "value": 0.9828881951670714,
+   "ci95": [
+    0.9725446744003802,
+    0.9920122429054098
+   ]
+  },
+  "auc_clamped_as_paper": {
+   "value": 0.9828881951670714,
+   "ci95": [
+    0.9725446744003802,
+    0.9920122429054098
+   ]
+  }
+ }
+}
