@@ -102,3 +102,9 @@ F is the distribution of single impostor scores. It is estimated from every pair
 - **Verification (TAR):** the threshold is the single-pair case, F(t) = 1 - target FAR.
 
 Every result reports the achieved test FAR next to the target. A target is flagged as below resolution when it needs a per-impostor rate under one pair in the number of val_a impostor pairs.
+
+## vecstore ablation (2026-10-08)
+
+vecstore had no packaging file, so it could not be installed. A minimal `pyproject.toml` was added on a new branch, `packaging`, in a separate sibling clone, `../vecstore-packaging` (commit 4c4096c, not pushed). The existing working copy, `../vecstore`, was left untouched. The package is installed into this project's venv from that clone and is not listed in `requirements.txt`, since it is not on PyPI.
+
+The ablation runs vecstore brute force and vecstore HNSW at the FAISS HNSW settings (M = 32, efConstruction = 40, the same efSearch sweep), over the same database and queries, timed with the same harness. Recall@10 is measured against exact FAISS search.

@@ -25,8 +25,12 @@ EF_SEARCH = (16, 32, 64, 128, 256)
 EF_TESTED = 64  # the one HNSW operating point entered in the significance tests
 FARS = (0.01, 0.001)
 CHUNK = 1024
-VECSTORE = ("not run: github.com/Bosc01/vecstore at commit ac7603b has no pyproject.toml "
-            "or setup.py, so pip cannot install it")
+VECSTORE_SOURCE = "github.com/Bosc01/vecstore, branch packaging, commit 4c4096c"
+
+try:  # pure NumPy brute force and HNSW, the third stage-1 ablation (decisions.md)
+    import vecstore
+except ImportError:
+    vecstore = None
 
 
 def _load(cfg, tag, name):
@@ -40,14 +44,42 @@ def _true_rank(ids, q_dogs, g_dogs):
     return np.where(hit.any(1), hit.argmax(1) + 1, 0)
 
 
-def _timed_search(index, Q, k):
-    """One query at a time on one thread, as a serving path would issue them."""
+def _timed(search, Q):
+    """One query at a time, as a serving path would issue them. search(x) returns ids."""
     ids, ms = [], []
     for x in Q:
         start = time.perf_counter()
-        ids.append(index.search(x[None], k)[1][0])
+        ids.append(search(x))
         ms.append(1000 * (time.perf_counter() - start))
     return np.array(ids), {"p50_ms": float(np.percentile(ms, 50)), "p99_ms": float(np.percentile(ms, 99))}
+
+
+def _recall(ids, exact):
+    return float(np.mean([len(set(a) & set(b)) / len(b) for a, b in zip(ids, exact)]))
+
+
+def _vecstore(db, Q, exact):
+    """vecstore brute force and HNSW at the FAISS HNSW settings, timed the same way.
+    Python loops: no thread pinning beyond NumPy's own BLAS defaults."""
+    if vecstore is None:
+        return {"status": "not installed", "source": VECSTORE_SOURCE}
+    store = vecstore.VectorStore(db.shape[1])
+    store.add_batch(enumerate(db))
+    ids, latency = _timed(lambda x: [i for i, _ in store.search(x, 10)], Q)
+    brute = {"recall_at_10": _recall(ids, exact), **latency}
+    start = time.perf_counter()
+    index = vecstore.HNSWIndex(db.shape[1], M=HNSW_M, ef_construction=HNSW_EF_CONSTRUCTION)
+    for i, v in enumerate(db):
+        index.add(i, v)
+    build = time.perf_counter() - start
+    sweep = []
+    for ef in EF_SEARCH:
+        ids, latency = _timed(lambda x: [i for i, _ in index.search(x, 10, ef_search=ef)], Q)
+        sweep.append({"ef_search": ef, "recall_at_10": _recall(ids, exact), **latency})
+    return {"status": "run", "source": VECSTORE_SOURCE, "brute_force": brute,
+            "hnsw": {"M": HNSW_M, "ef_construction": HNSW_EF_CONSTRUCTION,
+                     "flags": "defaults: heuristic_select False, layer0_full_links True",
+                     "build_seconds": build, "sweep": sweep}}
 
 
 def _hnsw(vectors, ef_search):
@@ -59,9 +91,10 @@ def _hnsw(vectors, ef_search):
 
 
 def ann(cfg, splits, seed, n_boot):
-    """Exact (IndexFlatIP) and HNSW stage-1 search. ANN recall@10 is measured against
-    exact search over every photo that is not a test query, and needs no labels.
-    Identification recall uses the test gallery."""
+    """Exact (IndexFlatIP) and HNSW stage-1 search with FAISS on one thread, and the
+    vecstore ablation. ANN recall@10 is measured against exact FAISS search over every
+    photo that is not a test query, and needs no labels. Identification recall uses
+    the test gallery."""
     faiss.omp_set_num_threads(1)
     parts = [_load(cfg, STAGE1, s) for s in data.SPLITS]
     if any(p is None for p in parts):
@@ -74,16 +107,15 @@ def ann(cfg, splits, seed, n_boot):
 
     flat = faiss.IndexFlatIP(db.shape[1])
     flat.add(db)
-    exact, flat_latency = _timed_search(flat, Q, 10)
+    exact, flat_latency = _timed(lambda x: flat.search(x[None], 10)[1][0], Q)
     start = time.perf_counter()
     hnsw = _hnsw(db, EF_SEARCH[0])
     build = time.perf_counter() - start
     sweep = []
     for ef in EF_SEARCH:
         hnsw.hnsw.efSearch = ef
-        ids, latency = _timed_search(hnsw, Q, 10)
-        recall = np.mean([len(set(a) & set(b)) / 10 for a, b in zip(ids, exact)])
-        sweep.append({"ef_search": ef, "recall_at_10": float(recall), **latency})
+        ids, latency = _timed(lambda x: hnsw.search(x[None], 10)[1][0], Q)
+        sweep.append({"ef_search": ef, "recall_at_10": _recall(ids, exact), **latency})
 
     top = min(TOP, len(G))
     flat_g = faiss.IndexFlatIP(G.shape[1])
@@ -101,7 +133,7 @@ def ann(cfg, splits, seed, n_boot):
         "ann": {"database_size": len(db), "n_queries": len(Q), "k": 10, "flat": flat_latency,
                 "hnsw": {"M": HNSW_M, "ef_construction": HNSW_EF_CONSTRUCTION,
                          "build_seconds": build, "sweep": sweep}},
-        "vecstore": VECSTORE,
+        "vecstore": _vecstore(db, Q, exact),
         "identification": {"gallery_size": len(G), "n_queries": len(Q), **identification},
     }
 
