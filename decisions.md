@@ -58,3 +58,19 @@ Two settings deliberately differ from the timm eval defaults:
 - DINOv2 runs at 224 x 224 instead of 518 x 518.
 
 The timm CLIP model was checked against the open_clip reference implementation on 64 DogFaceNet images (`results/dev/clip_reference_check.json`), and the embeddings agree to a minimum cosine similarity of 0.9999998. The official OpenAI preprocessing does not crop a square 224 image, so the CLIP input matches the reference exactly. Nothing changed, and no cache was rebuilt.
+
+## Milestone 2 parameters (2026-10-08)
+
+All fixed before the first Milestone 2 run and not tuned on any data:
+
+- Stage 1: DINOv2 global embeddings. FAISS `IndexFlatIP` (exact) and `IndexHNSWFlat` with M = 32 and efConstruction = 40. efSearch is reported as a sweep over 16, 32, 64, 128, and 256. Only efSearch = 64 enters the significance tests.
+- Stage 2 reranks the top 100. The score is the sum of similarities over mutual nearest-neighbour pairs of local features: DINOv2 patch tokens, or for the control arm, ImageNet ResNet-50 final feature-map cells. There are two fusions: the stage-2 score alone, and reciprocal rank fusion with the stage-1 order at k = 60 (Cormack et al., SIGIR 2009).
+- Open set: thresholds come from val_a and are applied unchanged to test. TAR uses all pairs of distinct photos. DIR uses the open-set gallery protocol.
+- Corruptions (SYNTHETIC, queries only, one severity each):
+  - motion blur, 15 px in a random direction;
+  - low light: brightness times 0.3, gamma 1.5, Gaussian noise std 0.03;
+  - JPEG quality 15 (ImageNet-C severity 3);
+  - a random crop keeping 60% of the area.
+- Run (c) augmentation: each training photo gets one random corruption from that set with probability 0.5.
+- Significance: a two-sided paired sign-flip permutation test with dogs as units, 10,000 permutations, on per-query rank-1. Benjamini-Hochberg runs across every test in `pawmatch/significance.py`.
+- The vecstore ablation did not run: github.com/Bosc01/vecstore at commit ac7603b has no `pyproject.toml` or `setup.py`, so pip cannot install it.

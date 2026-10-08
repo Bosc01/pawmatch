@@ -22,7 +22,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms as T
 
-from pawmatch import data, embed, evaluate
+from pawmatch import corrupt, data, embed, evaluate
 
 RUNS = {"arcface": 0.0, "arcface_bh": 1.0}  # weight of the batch-hard term
 RUN_C = "augmented"
@@ -82,14 +82,16 @@ def lr_scales(step, steps):
     return c, c
 
 
-def fit(model, tf, items, hard_negative_weight, steps, seed=0, precision="fp32", log_every=50):
+def fit(model, tf, items, hard_negative_weight, steps, seed=0, precision="fp32", augment=False, log_every=50):
     """Train model in place for a fixed number of steps. precision is "fp32" or "bf16"
-    (autocast for the backbone; losses stay in fp32). Returns one record per step."""
+    (autocast for the backbone; losses stay in fp32). augment adds the SYNTHETIC
+    corruption augmentation of run (c). Returns one record per step."""
     torch.manual_seed(seed)
     rng = random.Random(seed)
     classes = {d: k for k, d in enumerate(sorted({d for _, d in items}))}
     labels = torch.tensor([classes[d] for _, d in items])
-    images = embed.Images([p for p, _ in items], T.Compose([T.RandomHorizontalFlip(), tf]))
+    pre = [corrupt.RandomCorruption(seed)] if augment else []
+    images = embed.Images([p for p, _ in items], T.Compose([*pre, T.RandomHorizontalFlip(), tf]))
     dev = embed.device()
     head = ArcFace(model.num_features, len(classes)).to(dev)
     model.to(dev).train()
@@ -155,9 +157,10 @@ def main(config, run):
     t, name = cfg["train"], cfg["dataset"]["name"]
     if run == "precision_test":
         return precision_test(cfg)
-    if run == RUN_C:
-        sys.exit("run (c) needs the Milestone 2 corruption augmentation and train.run_c_arm")
-    if run not in RUNS:
+    arm = t.get("run_c_arm") if run == RUN_C else run
+    if run == RUN_C and arm not in RUNS:
+        sys.exit("set train.run_c_arm to the arm with higher val_a rank-1 before run (c)")
+    if arm not in RUNS:
         sys.exit(f"unknown run {run}")
     if name != "petface" and t["steps"] > SMOKE_STEPS:
         sys.exit(f"full fine-tunes are reserved for PetFace; set train.steps to at most {SMOKE_STEPS}")
@@ -166,10 +169,10 @@ def main(config, run):
         sys.exit(f"{out} exists; each PetFace run is used once (decisions.md)")
     splits, _ = data.load_splits(cfg)
     model, tf = embed.build("dinov2_vits14")
-    log = fit(model, tf, splits["train"], RUNS[run], t["steps"], cfg["dataset"]["seed"], t["precision"],
-              log_every=1 if t["steps"] <= SMOKE_STEPS else 50)
+    log = fit(model, tf, splits["train"], RUNS[arm], t["steps"], cfg["dataset"]["seed"], t["precision"],
+              augment=run == RUN_C, log_every=1 if t["steps"] <= SMOKE_STEPS else 50)
     out.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"backbone": model.cpu().state_dict(), "run": run, "log": log}, out)
+    torch.save({"backbone": model.cpu().state_dict(), "run": run, "arm": arm, "log": log}, out)
     print(out)
 
 

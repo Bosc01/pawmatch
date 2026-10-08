@@ -39,3 +39,33 @@ def bootstrap_ci(stat, groups, n=1000, seed=0):
     uniq, inv = np.unique(groups, return_inverse=True)
     draws = np.random.default_rng(seed).multinomial(len(uniq), np.full(len(uniq), 1 / len(uniq)), size=n)
     return np.percentile([stat(w[inv]) for w in draws], [2.5, 97.5]).tolist()
+
+
+def paired_permutation_p(a, b, groups, n=10000, seed=0):
+    """Two-sided p-value for mean(a - b) = 0: a sign-flip permutation test that flips
+    each group's summed difference, so dogs, not photos, are the exchangeable units."""
+    _, inv = np.unique(groups, return_inverse=True)
+    d = np.bincount(inv, weights=np.asarray(a, float) - np.asarray(b, float))
+    observed, rng, extreme = abs(d.sum()), np.random.default_rng(seed), 0
+    for size in [1000] * (n // 1000) + [n % 1000]:
+        signs = rng.choice([-1.0, 1.0], size=(size, len(d)))
+        extreme += int((np.abs(signs @ d) >= observed - 1e-9).sum())
+    return (1 + extreme) / (n + 1)
+
+
+def benjamini_hochberg(p):
+    """Benjamini-Hochberg adjusted p-values, in input order."""
+    p = np.asarray(p, float)
+    order = np.argsort(p)
+    q = p[order] * len(p) / np.arange(1, len(p) + 1)
+    out = np.empty(len(p))
+    out[order] = np.minimum(np.minimum.accumulate(q[::-1])[::-1], 1)
+    return out
+
+
+def threshold_at_far(impostor_scores, far):
+    """Lowest threshold at which at most a fraction far of impostor scores is accepted
+    (score >= threshold). Returns (threshold, achievable FAR resolution 1/n)."""
+    s = np.sort(np.asarray(impostor_scores))[::-1]
+    k = int(np.floor(far * len(s)))  # impostors allowed above the threshold
+    return float(np.nextafter(s[k], np.inf)), 1 / len(s)

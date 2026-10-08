@@ -12,3 +12,4 @@ bootstrap = 1000
 [train]
 steps = 5  # smoke test only; full fine-tunes are reserved for PetFace
 precision = "fp32"
+run_c_arm = "arcface_bh"  # placeholder so the run (c) smoke test runs; not a choice between arms

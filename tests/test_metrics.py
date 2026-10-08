@@ -41,3 +41,25 @@ def test_bootstrap_ci():
     ci = metrics.bootstrap_ci(mean_of(v), g, n=2000, seed=1)
     assert ci == [0.0, 1.0]
     assert ci == metrics.bootstrap_ci(mean_of(v), g, n=2000, seed=1)
+
+
+def test_paired_permutation_p():
+    # Three dogs with per-dog differences 1, 1, 0: |sum of signed differences| >= 2
+    # in exactly half of the 2^3 sign patterns, so the exact p-value is 0.5.
+    p = metrics.paired_permutation_p([1, 1, 0], [0, 0, 0], ["x", "y", "z"], n=20000)
+    assert p == pytest.approx(0.5, abs=0.02)
+    assert metrics.paired_permutation_p([1, 0], [1, 0], ["x", "y"]) == 1.0
+
+
+def test_benjamini_hochberg_hand_computed():
+    # Sorted p: 0.01, 0.03, 0.04, 0.20 -> times 4/rank: 0.04, 0.06, 0.0533, 0.20 -> running min from the top.
+    q = metrics.benjamini_hochberg([0.01, 0.04, 0.03, 0.20])
+    assert q == pytest.approx([0.04, 0.16 / 3, 0.16 / 3, 0.20])
+
+
+def test_threshold_at_far():
+    impostors = np.arange(1000) / 1000  # 0.000 .. 0.999
+    t, resolution = metrics.threshold_at_far(impostors, 0.01)
+    assert (impostors >= t).sum() == 10 and resolution == 1 / 1000
+    t, _ = metrics.threshold_at_far(impostors, 0.0001)  # below resolution: accept none
+    assert (impostors >= t).sum() == 0

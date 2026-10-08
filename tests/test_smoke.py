@@ -22,8 +22,8 @@ def test_smoke_500_dogs():
     assert emb.shape == (len(items), 384)
     assert np.allclose(np.linalg.norm(emb, axis=1), 1, atol=1e-4)
 
-    res = evaluate.compute(items, emb, data.verification_pairs(items, 0), seed=0, unknown_frac=0.5, n_boot=20)
-    assert res["closed_set"]["n_query_dogs"] == 500
+    res, per_query = evaluate.compute(items, emb, data.verification_pairs(items, 0), seed=0, unknown_frac=0.5, n_boot=20)
+    assert res["closed_set"]["n_query_dogs"] == 500 and len(per_query["rank1"]) == res["closed_set"]["n_queries"]
     assert 0.1 < res["closed_set"]["rank1"]["value"] <= 1  # chance is 1/500
     assert 0.5 < res["verification"]["auc"]["value"] <= 1
 

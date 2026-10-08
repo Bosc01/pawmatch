@@ -78,7 +78,14 @@ def compute(items, emb, pairs, seed, unknown_frac, n_boot):
         return {"value": float(metrics.verification_auc(y, s, clamp)), "ci95": ci}
 
     out["verification"] = {"n_pairs": len(y), "auc": auc(False), "auc_clamped_as_paper": auc(True)}
-    return out
+    return out, {"rank1": ranks == 1, "dogs": qd}
+
+
+def save_per_query(cfg, name, **arrays):
+    """Per-query arrays for pawmatch.significance, kept in the cache (not committed)."""
+    out = cfg["cache_dir"] / "per_query" / f"{name}.npz"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(out, **arrays)
 
 
 def commit():
@@ -106,8 +113,10 @@ def main(config, tag):
         "protocol_seed": p["seed"], "bootstrap_resamples": p["bootstrap"],
         "verification_pairs": "official verification.csv" if official else "generated, PetFace protocol",
         "code_commit": commit(),
-        **compute(items, z["emb"], pairs, p["seed"], p["unknown_frac"], p["bootstrap"]),
     }
+    metrics_out, per_query = compute(items, z["emb"], pairs, p["seed"], p["unknown_frac"], p["bootstrap"])
+    result.update(metrics_out)
+    save_per_query(cfg, f"m1_{tag}", **per_query)
     out = cfg["results_dir"] / f"m1_{tag}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=1) + "\n")
