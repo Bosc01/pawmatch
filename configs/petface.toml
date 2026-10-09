@@ -14,3 +14,8 @@ bootstrap = 1000
 steps = 18000  # fixed before the first run (decisions.md)
 precision = "bf16"  # all three PetFace fine-tunes; embeddings stay fp32 (decisions.md)
 run_c_arm = ""  # arm with higher closed-set val_a rank-1 after runs (a) and (b); arm (a) on a tie (decisions.md)
+
+[serve]
+model = "dinov2_vits14"
+top_k = 5
+no_match_far = 0.01  # no-match threshold from val_a impostors at the gallery size (decisions.md)

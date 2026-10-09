@@ -3,7 +3,7 @@ RUN ?= arcface_bh
 PY = venv/bin/python
 BACKBONES = resnet50_in1k clip_vitb16 dinov2_vits14
 
-.PHONY: data embed eval train retrieve precision-test export cpp cpp-test bench test readme facts
+.PHONY: data embed eval train retrieve precision-test detect serve export cpp cpp-test bench test readme facts
 
 data:
 	$(PY) -m pawmatch.data $(CONFIG)
@@ -25,6 +25,13 @@ retrieve:
 	VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 $(PY) -m pawmatch.retrieve $(CONFIG) m2_ann
 	$(PY) -m pawmatch.retrieve $(CONFIG) m2_rerank m2_open_set m2_corruption
 	$(PY) -m pawmatch.significance $(CONFIG)
+
+detect:
+	$(PY) -m pawmatch.detect $(CONFIG) speed
+	$(PY) -m pawmatch.detect $(CONFIG)
+
+serve:
+	PAWMATCH_CONFIG=$(CONFIG) venv/bin/uvicorn --factory pawmatch.serve:build_app --port 8000
 
 precision-test:
 	$(PY) -m pawmatch.train $(CONFIG) precision_test

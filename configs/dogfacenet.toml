@@ -13,3 +13,8 @@ bootstrap = 1000
 steps = 5  # smoke test only; full fine-tunes are reserved for PetFace
 precision = "fp32"
 run_c_arm = "arcface_bh"  # placeholder so the run (c) smoke test runs; not a choice between arms
+
+[serve]
+model = "dinov2_vits14"
+top_k = 5
+no_match_far = 0.01  # no-match threshold from val_a impostors at the gallery size (decisions.md)
