@@ -22,7 +22,8 @@ train:
 	$(PY) -m pawmatch.evaluate $(CONFIG) $(RUN)
 
 retrieve:
-	$(PY) -m pawmatch.retrieve $(CONFIG)
+	VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 $(PY) -m pawmatch.retrieve $(CONFIG) m2_ann
+	$(PY) -m pawmatch.retrieve $(CONFIG) m2_rerank m2_open_set m2_corruption
 	$(PY) -m pawmatch.significance $(CONFIG)
 
 precision-test:

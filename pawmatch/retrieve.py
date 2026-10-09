@@ -1,12 +1,15 @@
 """Milestone 2: two-stage retrieval, open-set thresholds, and robustness to SYNTHETIC
 kennel-photo corruptions, on the test split with the Milestone 1 protocol.
 
-Usage: python -m pawmatch.retrieve CONFIG
-Writes m2_ann.json, m2_rerank.json, m2_open_set.json, and m2_corruption.json to the
-results directory, and per-query rank-1 hits to the cache for pawmatch.significance.
+Usage: python -m pawmatch.retrieve CONFIG [JOB ...]
+Jobs m2_ann, m2_rerank, m2_open_set, and m2_corruption (default: all) each write
+<job>.json to the results directory, and per-query rank-1 hits to the cache for
+pawmatch.significance. m2_ann times searches and refuses to run unless NumPy's BLAS
+is pinned to one thread through the environment (the Makefile does this).
 Every value below was fixed before any run; none is tuned.
 """
 import json
+import os
 import sys
 import time
 
@@ -59,8 +62,8 @@ def _recall(ids, exact):
 
 
 def _vecstore(db, Q, exact):
-    """vecstore brute force and HNSW at the FAISS HNSW settings, timed the same way.
-    Python loops: no thread pinning beyond NumPy's own BLAS defaults."""
+    """vecstore brute force and HNSW at the FAISS HNSW settings, timed the same way,
+    with NumPy's BLAS pinned to one thread like FAISS."""
     if vecstore is None:
         return {"status": "not installed", "source": VECSTORE_SOURCE}
     store = vecstore.VectorStore(db.shape[1])
@@ -95,6 +98,9 @@ def ann(cfg, splits, seed, n_boot):
     vecstore ablation. ANN recall@10 is measured against exact FAISS search over every
     photo that is not a test query, and needs no labels. Identification recall uses
     the test gallery."""
+    pins = {k: os.environ.get(k) for k in ("VECLIB_MAXIMUM_THREADS", "OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS")}
+    if "1" not in (pins["VECLIB_MAXIMUM_THREADS"], pins["OPENBLAS_NUM_THREADS"]):
+        sys.exit("m2_ann times searches: set VECLIB_MAXIMUM_THREADS=1 (Accelerate) or OPENBLAS_NUM_THREADS=1")
     faiss.omp_set_num_threads(1)
     parts = [_load(cfg, STAGE1, s) for s in data.SPLITS]
     if any(p is None for p in parts):
@@ -130,6 +136,7 @@ def ann(cfg, splits, seed, n_boot):
         evaluate.save_per_query(cfg, f"m2_stage1_{name.split('_')[0]}", rank1=rank == 1, dogs=qd)
     return {
         "model": STAGE1, "hardware": evaluate.hardware(), "faiss": faiss.__version__, "threads": 1,
+        "thread_pinning": {"faiss_omp_threads": 1, **pins},
         "ann": {"database_size": len(db), "n_queries": len(Q), "k": 10, "flat": flat_latency,
                 "hnsw": {"M": HNSW_M, "ef_construction": HNSW_EF_CONSTRUCTION,
                          "build_seconds": build, "sweep": sweep}},
@@ -300,7 +307,7 @@ def corruption(cfg, splits, seed, n_boot):
     return {"synthetic": True, "applied_to": "queries only", "parameters": params, "models": out}
 
 
-def main(config):
+def main(config, *names):
     cfg = data.load_config(config)
     splits, sha = data.load_splits(cfg)
     p = cfg["protocol"]
@@ -311,7 +318,8 @@ def main(config):
             "m2_open_set": lambda: open_set(cfg, splits, p["seed"], p["unknown_frac"], p["bootstrap"]),
             "m2_corruption": lambda: corruption(cfg, splits, p["seed"], p["bootstrap"])}
     cfg["results_dir"].mkdir(parents=True, exist_ok=True)
-    for name, job in jobs.items():
+    for name in names or jobs:
+        job = jobs[name]
         start = time.perf_counter()
         out = cfg["results_dir"] / f"{name}.json"
         out.write_text(json.dumps({**common, **job()}, indent=1, default=float) + "\n")
@@ -319,4 +327,4 @@ def main(config):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(*sys.argv[1:])
