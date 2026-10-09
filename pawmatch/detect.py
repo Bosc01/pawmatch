@@ -97,6 +97,7 @@ def _images(items, indices, corruption):
 
 def speed(cfg):
     """Detector time per image on 32 DogFaceNet photos, batch 16; second of two passes."""
+    commit = evaluate.commit()
     splits, _ = data.load_splits(cfg)
     images = _images(splits["test"], range(32), None)
     out = {}
@@ -108,14 +109,15 @@ def speed(cfg):
                 detector(images[i:i + BATCH])
             ms = 1000 * (time.perf_counter() - start) / len(images)
         out[name] = {"model": DETECTORS[name], "ms_per_image": ms}
-    return {"hardware": evaluate.hardware(), "batch": BATCH, "images": len(images), "precision": "fp32",
-            "rule": "detector chosen on speed alone, before any detection result was measured", "detectors": out}
+    return {"hardware": evaluate.hardware(), "code_commit": commit, "batch": BATCH, "images": len(images), "precision": "fp32",
+            "rule": "detector chosen on speed alone, a rule set before any detection failure rate was measured (decisions.md notes one earlier single-image spot check)", "detectors": out}
 
 
 def evaluate_detection(cfg):
     """Detection failure rate on the test queries, clean and under each SYNTHETIC
     corruption, plus rank-1 through the full service path (detect, align, embed,
     search the one-photo-per-dog gallery). A detection failure counts as a miss."""
+    commit = evaluate.commit()  # before the run: later edits must not change the stamp
     splits, sha = data.load_splits(cfg)
     items, seed, n_boot = splits["test"], cfg["protocol"]["seed"], cfg["protocol"]["bootstrap"]
     dogs = np.array([d for _, d in items])
@@ -151,7 +153,7 @@ def evaluate_detection(cfg):
             "rank1_among_detected": evaluate._score(hit[ok], qd[ok], n_boot, seed) if ok.any() else None,
         }
         print(condition or "clean", f"failure {1 - ok.mean():.4f}", f"end-to-end rank-1 {hit.mean():.4f}")
-    return {"dataset": cfg["dataset"]["name"], "split": "test", "split_sha256": sha, "code_commit": evaluate.commit(),
+    return {"dataset": cfg["dataset"]["name"], "split": "test", "split_sha256": sha, "code_commit": commit,
             "detector": DETECTORS[DETECTOR], "query": QUERY, "threshold": THRESHOLD, "crop_scale": CROP_SCALE,
             "embedding_model": MODEL, "gallery": "one photo per test dog, embedded without detection (already face crops)",
             "corruptions": "SYNTHETIC, queries only, same images as results m2_corruption", **out}

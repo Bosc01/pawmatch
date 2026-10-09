@@ -131,6 +131,7 @@ def precision_test(cfg):
     the medians, since it includes one-time setup."""
     if cfg["dataset"]["name"] == "petface":
         sys.exit("the precision test runs on DogFaceNet only")
+    commit = evaluate.commit()
     splits, _ = data.load_splits(cfg)
     log = {}
     for p in ("fp32", "bf16"):
@@ -144,7 +145,7 @@ def precision_test(cfg):
     out = cfg["results_dir"] / "precision_test.json"
     out.write_text(json.dumps({
         "dataset": cfg["dataset"]["name"], "purpose": "speed only", "hardware": evaluate.hardware(),
-        "code_commit": evaluate.commit(), "steps": SMOKE_STEPS, "warmup_steps": math.ceil(WARMUP_FRAC * SMOKE_STEPS),
+        "code_commit": commit, "steps": SMOKE_STEPS, "warmup_steps": math.ceil(WARMUP_FRAC * SMOKE_STEPS),
         "batch_size": DOGS_PER_BATCH * PHOTOS_PER_DOG, "seed": cfg["dataset"]["seed"],
         "median_seconds_per_step": {p: {ph: median(p, ph) for ph in ("head", "full")} for p in log},
         "log": log,
