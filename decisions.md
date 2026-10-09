@@ -129,3 +129,13 @@ Detector choice: the rule, set beforehand, was to take the faster of OWL-ViT and
 Outcome on DogFaceNet development data (`results/dev/serve_detection.json`): the detector found no face in most clean test queries and gallery photos, and it failed less often on the corrupted queries than on the clean ones. End-to-end rank-1 through the service is far below rank-1 without detection, while rank-1 among detected queries stays close to it. DogFaceNet photos are already tight face crops, which differ from real found-dog photos, so these rates may not carry over. Changing the detector, the threshold, the crop, or adding a fallback when no face is found would rest on these DogFaceNet numbers, and is left to the project owner.
 
 Known mismatch: the no-match threshold is calibrated on val_a embeddings made without detection, while service queries pass through detection and cropping. In a manual check, a correct top match scored below the threshold.
+
+## Cross-attention rerank head (2026-10-08)
+
+Design, fixed before any run (`pawmatch/xattn.py`):
+
+- **Architecture:** frozen DINOv2 patch tokens projected to 128 dimensions, and one 4-head cross-attention layer in which the query tokens attend to the candidate tokens. A residual connection and layer norm follow, then mean pooling and a two-layer MLP to one logit.
+- **Training:** on the train split only, with 16 anchors per step. Each anchor is scored against 1 positive (another photo of its dog) and 7 hard negatives (its nearest photos of other dogs by stage-1 embedding), with softmax cross-entropy. AdamW, learning rate 1e-4, weight decay 0.01.
+- **Scoring:** the stage-1 top 100 of each test query, fused two ways (head score alone, and RRF with the stage-1 order). The comparisons enter the Benjamini-Hochberg set.
+
+DogFaceNet is capped at 20 steps. After 20 steps the loss stayed near ln 8, the chance level for 8 candidates, and the head scores were uncorrelated with stage-1 similarity, so the DogFaceNet rerank numbers (`results/dev/m2_rerank.json`) only show that the plumbing runs. The PetFace step count is set before the first PetFace run.
