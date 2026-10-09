@@ -18,3 +18,6 @@ run_c_arm = "arcface_bh"  # placeholder so the run (c) smoke test runs; not a ch
 model = "dinov2_vits14"
 top_k = 5
 no_match_far = 0.01  # no-match threshold from val_a impostors at the gallery size (decisions.md)
+
+[rerank_head]
+steps = 20  # smoke test only; full training waits for PetFace train

@@ -35,6 +35,10 @@ def tests(cfg):
         ("m2_rerank_rrf_resnet50_in1k", "m2_stage1_flat"),
         ("m2_rerank_mnn_dinov2_vits14", "m2_rerank_mnn_resnet50_in1k"),
         ("m2_rerank_rrf_dinov2_vits14", "m2_rerank_rrf_resnet50_in1k"),
+        # Milestone 2: the cross-attention head against stage 1 and against the patch rerank.
+        ("m2_rerank_xattn_dinov2_vits14", "m2_stage1_flat"),
+        ("m2_rerank_xattn_rrf_dinov2_vits14", "m2_stage1_flat"),
+        ("m2_rerank_xattn_dinov2_vits14", "m2_rerank_mnn_dinov2_vits14"),
         # Milestone 2: each corruption against clean queries for the stage-1 model; run (c)
         # against its arm on clean and on corrupted queries.
         *[("m1_dinov2_vits14", f"m2_dinov2_vits14_{c}") for c in corrupt.CORRUPTIONS],

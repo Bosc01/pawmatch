@@ -13,12 +13,20 @@ from sklearn.metrics import roc_auc_score
 from pawmatch import data, metrics
 
 CHUNK = 1024
+STAGE1_TOP = 100  # candidates passed to stage 2
 
 
 def _score(values, groups, n_boot, seed):
     values = np.asarray(values, float)
     ci = metrics.bootstrap_ci(lambda w: np.average(values, weights=w), groups, n_boot, seed)
     return {"value": float(values.mean()), "ci95": ci}
+
+
+def stage1_top(Q, G, top=STAGE1_TOP):
+    """Stage-1 candidates: gallery positions of each query's top scores, best first."""
+    n = min(top, len(G))
+    return np.concatenate([np.argsort(-(Q[i:i + CHUNK] @ G.T), 1, kind="stable")[:, :n]
+                           for i in range(0, len(Q), CHUNK)])
 
 
 def _ranks(Q, q_dogs, G, g_dogs):

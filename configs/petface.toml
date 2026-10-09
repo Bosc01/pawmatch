@@ -19,3 +19,6 @@ run_c_arm = ""  # arm with higher closed-set val_a rank-1 after runs (a) and (b)
 model = "dinov2_vits14"
 top_k = 5
 no_match_far = 0.01  # no-match threshold from val_a impostors at the gallery size (decisions.md)
+
+[rerank_head]
+steps = 0  # set before the first PetFace run

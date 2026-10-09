@@ -21,7 +21,7 @@ from pawmatch import corrupt, data, evaluate, metrics
 STAGE1 = "dinov2_vits14"  # stage-1 model; its patch tokens drive the main rerank
 CONTROL = "resnet50_in1k"  # control arm: the same rerank on ImageNet feature-map cells
 MODELS = ("resnet50_in1k", "clip_vitb16", "dinov2_vits14", "arcface", "arcface_bh", "augmented")
-TOP = 100
+TOP = evaluate.STAGE1_TOP
 RRF_K = 60  # reciprocal rank fusion constant from Cormack et al., SIGIR 2009
 HNSW_M, HNSW_EF_CONSTRUCTION = 32, 40
 EF_SEARCH = (16, 32, 64, 128, 256)
@@ -163,11 +163,12 @@ def _rrf(scores):
     return 1 / (RRF_K + stage1) + 1 / (RRF_K + stage2)
 
 
-def rerank(cfg, splits, seed, n_boot):
+def rerank(cfg, splits, sha, seed, n_boot):
     """Rerank the stage-1 top 100 by mutual nearest-neighbour local-feature matching,
     with DINOv2 patch tokens and, as the control arm, ImageNet ResNet-50 feature-map
-    cells. Fusions: stage-2 score alone, and RRF with the stage-1 order. A true match
-    outside the top 100 keeps its stage-1 rank. Ties count against the true match."""
+    cells; and, when its scores exist, by the cross-attention head (pawmatch.xattn).
+    Fusions: stage-2 score alone, and RRF with the stage-1 order. A true match outside
+    the top 100 keeps its stage-1 rank. Ties count against the true match."""
     items = splits["test"]
     dogs = np.array([d for _, d in items])
     g, q, _ = data.gallery_query(items, seed)
@@ -175,9 +176,8 @@ def rerank(cfg, splits, seed, n_boot):
     qd, gd = dogs[q], dogs[g]
     emb = _load(cfg, STAGE1, "test")["emb"]
     stage1_rank = evaluate._ranks(emb[q], qd, emb[g], gd)
-    top_n = min(TOP, len(g))
-    top = np.concatenate([np.argsort(-(emb[q[i:i + CHUNK]] @ emb[g].T), 1, kind="stable")[:, :top_n]
-                          for i in range(0, len(q), CHUNK)])
+    top = evaluate.stage1_top(emb[q], emb[g], TOP)
+    top_n = top.shape[1]
     hit = gd[top] == qd[:, None]
     in_top, pos = hit.any(1), hit.argmax(1)
 
@@ -193,15 +193,25 @@ def rerank(cfg, splits, seed, n_boot):
            "gallery_size": len(g), "n_queries": len(q),
            "stage1_recall_at_top": evaluate._score(in_top, qd, n_boot, seed),
            "stage1": summary(stage1_rank)}
+    def apply(name, score):
+        t = score[np.arange(len(q)), pos]
+        rank = np.where(in_top, (score >= t[:, None]).sum(1), stage1_rank)
+        out[name] = summary(rank)
+        evaluate.save_per_query(cfg, f"m2_{name}", rank1=rank == 1, dogs=qd)
+
     for feat in (STAGE1, CONTROL):
         P = np.load(cfg["cache_dir"] / feat / "test_patches.npy", mmap_mode="r")
         mnn = np.stack([mnn_scores(np.asarray(P[q[i]], np.float32), np.asarray(P[g[top[i]]], np.float32))
                         for i in range(len(q))])
-        for fusion, score in (("mnn", mnn), ("rrf", _rrf(mnn))):
-            t = score[np.arange(len(q)), pos]
-            rank = np.where(in_top, (score >= t[:, None]).sum(1), stage1_rank)
-            out[f"rerank_{fusion}_{feat}"] = summary(rank)
-            evaluate.save_per_query(cfg, f"m2_rerank_{fusion}_{feat}", rank1=rank == 1, dogs=qd)
+        apply(f"rerank_mnn_{feat}", mnn)
+        apply(f"rerank_rrf_{feat}", _rrf(mnn))
+    xattn = cfg["cache_dir"] / "xattn_scores.npz"
+    if xattn.exists():
+        z = np.load(xattn)
+        if str(z["sha256"]) != sha or not np.array_equal(z["top"], top):
+            sys.exit(f"{xattn} does not match the current stage-1 candidates; rerun make rerank-head")
+        apply(f"rerank_xattn_{STAGE1}", z["scores"])
+        apply(f"rerank_xattn_rrf_{STAGE1}", _rrf(z["scores"]))
     return out
 
 
@@ -314,7 +324,7 @@ def main(config, *names):
     common = {"dataset": cfg["dataset"]["name"], "split": "test", "split_sha256": sha,
               "protocol_seed": p["seed"], "bootstrap_resamples": p["bootstrap"], "code_commit": evaluate.commit()}
     jobs = {"m2_ann": lambda: ann(cfg, splits, p["seed"], p["bootstrap"]),
-            "m2_rerank": lambda: rerank(cfg, splits, p["seed"], p["bootstrap"]),
+            "m2_rerank": lambda: rerank(cfg, splits, sha, p["seed"], p["bootstrap"]),
             "m2_open_set": lambda: open_set(cfg, splits, p["seed"], p["unknown_frac"], p["bootstrap"]),
             "m2_corruption": lambda: corruption(cfg, splits, p["seed"], p["bootstrap"])}
     cfg["results_dir"].mkdir(parents=True, exist_ok=True)
