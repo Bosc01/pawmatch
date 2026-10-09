@@ -1,0 +1,32 @@
+{
+ "note": "Figures from outside this project, each with its source. None is computed here, and none is a project result.",
+ "shelter_intakes_2025": {
+  "value": 5800000,
+  "as_published": "5.8 million",
+  "measure": "dog and cat community intakes to US shelters and rescues in 2025",
+  "species": "dogs and cats combined",
+  "source": "Shelter Animals Count, 2025 Annual Data Report, released February 4, 2026",
+  "url": "https://www.shelteranimalscount.org/shelter-animals-count-releases-2025-annual-data-report-marking-10-years-of-national-sheltering-data/",
+  "caveat": "a national estimate from the Shelter Animals Count model, rounded as published"
+ },
+ "returned_to_owner_2025": {
+  "value": 638000,
+  "as_published": "638,000",
+  "measure": "dogs and cats returned to their owners in 2025",
+  "species": "dogs and cats combined",
+  "source": "Shelter Animals Count, 2025 Annual Data Report, released February 4, 2026",
+  "url": "https://www.shelteranimalscount.org/shelter-animals-count-releases-2025-annual-data-report-marking-10-years-of-national-sheltering-data/",
+  "caveat": "a national estimate from the Shelter Animals Count model, rounded as published"
+ },
+ "microchip_return_to_owner_dogs": {
+  "microchipped_stray_dogs": 0.522,
+  "comparison_stray_dogs": 0.219,
+  "measure": "share of stray dogs returned to their owners",
+  "study": "53 animal shelters in 23 US states, August 2007 to March 2008, 7,704 microchipped animals",
+  "source": "Lord LK, Ingwersen W, Gray JL, Wintz DJ. Characterization of animals with microchips entering animal shelters. J Am Vet Med Assoc. 2009;235(2):160-167. doi:10.2460/javma.235.2.160. PMID 19601734. Peer reviewed.",
+  "percentages_reported_by": "JAVMA News (American Veterinary Medical Association), 'Pet owners, shelters, and clinics: Check the chip', August 1, 2017, citing the paper. The paper's full text was not accessible; the PubMed abstract does not give these two percentages.",
+  "comparison_group": "JAVMA News describes it as dogs without microchips. The Ohio State University release of October 11, 2009 describes it as all stray dogs entering the shelters.",
+  "abstract_check": "The abstract reports owners found for 2,191 of 2,956 microchipped stray dogs (74.1%), a different measure from return to owner.",
+  "url": "https://pubmed.ncbi.nlm.nih.gov/19601734/"
+ }
+}

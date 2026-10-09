@@ -1,5 +1,9 @@
 # PawMatch
 
+<!-- problem:start -->
+US shelters and rescues took in an estimated 5.8 million dogs and cats in 2025 and returned 638,000 of them to their owners (Shelter Animals Count, 2025 Annual Data Report). In a 2009 study of 53 shelters, microchipped stray dogs went home 52.2% of the time, against 21.9% for the comparison group of stray dogs (Lord et al., J Am Vet Med Assoc 2009). Sources and caveats are in `results/external.json`.
+<!-- problem:end -->
+
 Open-set dog re-identification for lost-pet reunification. Work in progress: the pipeline runs, and no PetFace results exist yet.
 
 ## Results

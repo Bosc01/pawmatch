@@ -37,3 +37,8 @@ def test_report_never_reads_results_dev(tmp_path, monkeypatch):
 
     facts = "\n".join(report.facts())
     assert str(REAL) in facts and str(DEV) not in facts
+
+
+def test_external_figures_are_never_offered_as_results(tmp_path):
+    (tmp_path / "external.json").write_text(json.dumps({"shelter_intakes_2025": {"value": 5800000}}))
+    assert report.facts(tmp_path) == []

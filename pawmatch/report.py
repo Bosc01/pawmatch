@@ -47,7 +47,20 @@ def m4_table(results):
     return "\n".join(lines)
 
 
-SECTIONS = {"m1": m1_table, "m4": m4_table}
+def problem(results):
+    e = results.get("external.json")
+    if not e:
+        return "Problem statement pending sourced figures."
+    intake, rto, chip = e["shelter_intakes_2025"], e["returned_to_owner_2025"], e["microchip_return_to_owner_dogs"]
+    return (f"US shelters and rescues took in an estimated {intake['as_published']} dogs and cats in 2025 and returned "
+            f"{rto['as_published']} of them to their owners (Shelter Animals Count, 2025 Annual Data Report). In a "
+            f"2009 study of 53 shelters, microchipped stray dogs went home {100 * chip['microchipped_stray_dogs']:.1f}% "
+            f"of the time, against {100 * chip['comparison_stray_dogs']:.1f}% for the comparison group of stray dogs "
+            f"(Lord et al., J Am Vet Med Assoc 2009). Sources and caveats are in `results/external.json`.")
+
+
+SECTIONS = {"problem": problem, "m1": m1_table, "m4": m4_table}
+EXTERNAL = "external.json"  # sourced outside figures: shown in the README, never offered as project results
 
 
 def readme(path="README.md", root="results"):
@@ -69,7 +82,7 @@ def facts(root="results"):
                 yield from walk(v, f"{key}[{i}]")
         elif isinstance(x, (int, float)) and not isinstance(x, bool):
             yield key, x
-    return [f"{name}: {k} = {v}" for name, r in load_results(root).items() for k, v in walk(r, "")]
+    return [f"{name}: {k} = {v}" for name, r in load_results(root).items() if name != EXTERNAL for k, v in walk(r, "")]
 
 
 if __name__ == "__main__":
