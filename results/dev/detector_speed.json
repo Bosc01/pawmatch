@@ -1,0 +1,18 @@
+{
+ "hardware": "Apple M5, 24 GB RAM",
+ "code_commit": "86e7bea",
+ "batch": 16,
+ "images": 32,
+ "precision": "fp32",
+ "rule": "detector chosen on speed alone, a rule set before any detection failure rate was measured (decisions.md notes one earlier single-image spot check)",
+ "detectors": {
+  "owlvit": {
+   "model": "google/owlvit-base-patch32",
+   "ms_per_image": 89.89755078073358
+  },
+  "owlv2": {
+   "model": "google/owlv2-base-patch16-ensemble",
+   "ms_per_image": 848.8779374965816
+  }
+ }
+}

@@ -110,3 +110,22 @@ vecstore had no packaging file, so it could not be installed. A minimal `pyproje
 The ablation runs vecstore brute force and vecstore HNSW at the FAISS HNSW settings (M = 32, efConstruction = 40, the same efSearch sweep), over the same database and queries, timed with the same harness. Recall@10 is measured against exact FAISS search.
 
 Thread pinning (2026-10-08): stage-1 timing runs with NumPy's BLAS pinned to one thread through `VECLIB_MAXIMUM_THREADS=1` (Accelerate; `OPENBLAS_NUM_THREADS=1` on Linux), matching FAISS's single OpenMP thread. The `m2_ann` job refuses to run without the pin, and the first, unpinned vecstore numbers were replaced. Pinned, vecstore brute force still measured faster than FAISS flat at 7,013 vectors (`results/dev/m2_ann.json`). Threading did not cause the gap. A likely cause, not separately measured, is that NumPy's matrix-vector product goes through Apple Accelerate while FAISS uses its own SIMD loop.
+
+## Match service (2026-10-08)
+
+Scope: `POST /match` in this repo only, with no Stay pull request. The gallery is one photo per dog from the DogFaceNet test split (CC BY 4.0), and every response and `GET /about` carry the attribution. Photos are processed in memory and never stored, and no personal data is collected.
+
+Pipeline, fixed before any detection result was measured:
+
+1. OWL-ViT (`google/owlvit-base-patch32`) detects the dog's face zero-shot, with the text "a photo of a dog's face" and a score threshold of 0.1, the transformers default.
+2. Alignment is a square crop around the best box, with side 1.2 times its longer edge, at 224 px. It corrects position and scale only, because the detector gives no landmarks.
+3. DINOv2 embeds the crop in fp32, and exact search returns the top 5 dogs.
+4. Errors: no face gives HTTP 422 with a plain message, a file that is not an image gives 400, and an upload over 10 MB gives 413.
+5. The no-match flag uses the Milestone 2 open-set rule: a threshold from the val_a impostor distribution at the gallery size, at a 1% FAR.
+6. The optional description is accepted but not used until the Milestone 3 text model exists.
+
+Detector choice: the rule, set beforehand, was to take the faster of OWL-ViT and OWLv2 (`results/dev/detector_speed.json`). Disclosure: in the first timing check, before the rule was applied, one image had no OWL-ViT box above 0.1 where OWLv2 found one. The choice still followed the speed rule. Timing varied widely between runs, but OWL-ViT was faster in every run.
+
+Outcome on DogFaceNet development data (`results/dev/serve_detection.json`): the detector found no face in most clean test queries and gallery photos, and it failed less often on the corrupted queries than on the clean ones. End-to-end rank-1 through the service is far below rank-1 without detection, while rank-1 among detected queries stays close to it. DogFaceNet photos are already tight face crops, which differ from real found-dog photos, so these rates may not carry over. Changing the detector, the threshold, the crop, or adding a fallback when no face is found would rest on these DogFaceNet numbers, and is left to the project owner.
+
+Known mismatch: the no-match threshold is calibrated on val_a embeddings made without detection, while service queries pass through detection and cropping. In a manual check, a correct top match scored below the threshold.

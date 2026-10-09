@@ -1,0 +1,139 @@
+{
+ "dataset": "dogfacenet",
+ "split": "test",
+ "split_sha256": "e913cb14af098b4610c56ca2d1890b535d9e8be14a465da220e551d0122d28db",
+ "code_commit": "86e7bea",
+ "detector": "google/owlvit-base-patch32",
+ "query": "a photo of a dog's face",
+ "threshold": 0.1,
+ "crop_scale": 1.2,
+ "embedding_model": "dinov2_vits14",
+ "gallery": "one photo per test dog, embedded without detection (already face crops)",
+ "corruptions": "SYNTHETIC, queries only, same images as results m2_corruption",
+ "gallery_photos": {
+  "n": 279,
+  "detection_failure_rate": 0.5878136200716846
+ },
+ "queries": {
+  "clean": {
+   "n": 1350,
+   "detection_failure_rate": {
+    "value": 0.6037037037037037,
+    "ci95": [
+     0.5724455556061779,
+     0.6374499408744176
+    ]
+   },
+   "rank1_end_to_end": {
+    "value": 0.29777777777777775,
+    "ci95": [
+     0.2662283967501418,
+     0.330143744202506
+    ]
+   },
+   "rank1_among_detected": {
+    "value": 0.7514018691588785,
+    "ci95": [
+     0.6999418604651162,
+     0.8057987451737452
+    ]
+   }
+  },
+  "motion_blur": {
+   "n": 1350,
+   "detection_failure_rate": {
+    "value": 0.3296296296296296,
+    "ci95": [
+     0.29877049758354174,
+     0.362713874127463
+    ]
+   },
+   "rank1_end_to_end": {
+    "value": 0.43407407407407406,
+    "ci95": [
+     0.3961667115417746,
+     0.4739739629302736
+    ]
+   },
+   "rank1_among_detected": {
+    "value": 0.6475138121546962,
+    "ci95": [
+     0.6002213639619469,
+     0.6958095275594828
+    ]
+   }
+  },
+  "low_light": {
+   "n": 1350,
+   "detection_failure_rate": {
+    "value": 0.14666666666666667,
+    "ci95": [
+     0.12198354422920739,
+     0.17435449751670856
+    ]
+   },
+   "rank1_end_to_end": {
+    "value": 0.6266666666666667,
+    "ci95": [
+     0.5887231796280273,
+     0.6669120180614359
+    ]
+   },
+   "rank1_among_detected": {
+    "value": 0.734375,
+    "ci95": [
+     0.6946723740507675,
+     0.7734038462398333
+    ]
+   }
+  },
+  "jpeg": {
+   "n": 1350,
+   "detection_failure_rate": {
+    "value": 0.2,
+    "ci95": [
+     0.1608760686266462,
+     0.2392250159642401
+    ]
+   },
+   "rank1_end_to_end": {
+    "value": 0.5962962962962963,
+    "ci95": [
+     0.550267792399662,
+     0.6417237307616328
+    ]
+   },
+   "rank1_among_detected": {
+    "value": 0.7453703703703703,
+    "ci95": [
+     0.7014580900480083,
+     0.7864351846593018
+    ]
+   }
+  },
+  "partial_crop": {
+   "n": 1350,
+   "detection_failure_rate": {
+    "value": 0.4022222222222222,
+    "ci95": [
+     0.37115825845131584,
+     0.43638735460114253
+    ]
+   },
+   "rank1_end_to_end": {
+    "value": 0.43925925925925924,
+    "ci95": [
+     0.4025305504403272,
+     0.4773567979871248
+    ]
+   },
+   "rank1_among_detected": {
+    "value": 0.734820322180917,
+    "ci95": [
+     0.6880450025497195,
+     0.7767694634085852
+    ]
+   }
+  }
+ }
+}

@@ -45,7 +45,7 @@ PetFace (ECCV 2024, arXiv 2407.13555): the dog subset has 46,755 individuals and
 ### Milestone 2: two-stage retrieval and open set (plumbing built on DogFaceNet; PetFace pending)
 
 - Stage 1: FAISS `IndexFlatIP` and `IndexHNSWFlat`, and the vecstore ablation, reported with recall and latency against FAISS.
-- Stage 2: rerank of the top 100 by mutual nearest-neighbour matching of DINOv2 patch tokens, with a control arm that uses ImageNet ResNet-50 features. **Amended:** the patch rerank is kept as a reported negative result. No fusion weight is tuned. The small cross-attention reranking head is built after PetFace arrives and is trained on the PetFace train split only.
+- Stage 2: rerank of the top 100 by mutual nearest-neighbour matching of DINOv2 patch tokens, with a control arm that uses ImageNet ResNet-50 features. **Amended:** the patch rerank is kept as a reported negative result. No fusion weight is tuned. A small cross-attention reranking head (one cross-attention layer over frozen DINOv2 patch tokens, trained listwise against one positive and 7 stage-1 hard negatives) has its plumbing built and is capped at 20 smoke-test steps on DogFaceNet. Full training waits for the PetFace train split, and the head is trained on that split only.
 - Open set: thresholds calibrated on val_a. TAR at FAR 1% and 0.1%, and DIR at the same FARs. **Amended:** the identification threshold solves 1 - F(t)^N = target FAR, where F is the val_a single-impostor score distribution and N is the test gallery size. The achieved test FAR is always reported next to the target.
 - Domain shift: a SYNTHETIC degraded query set (motion blur, low light, JPEG compression, partial crop) at one fixed severity each, with the rank-1 drop per corruption. Run (c) tests whether training-time corruption augmentation closes the gap.
 - Benjamini-Hochberg correction across every significance test in the project.
@@ -64,7 +64,7 @@ PetFace (ECCV 2024, arXiv 2407.13555): the dog subset has 46,755 individuals and
 
 ### Milestone 5: Stay integration (on hold)
 
-A FastAPI service in this repo, `POST /match`, takes a photo and an optional description and returns the top 5 candidates with scores and a no-match flag. A pull request to Stay, opened but not merged, adds a "Found a dog?" page that uses only a demo gallery built from the test split, stores no user photos, collects no personal data, and shows a visible demo note. **Amended:** this waits until the PetFace authors confirm that their research-only terms allow it.
+A FastAPI service in this repo, `POST /match`, takes a photo and an optional description and returns the top 5 candidates with scores and a no-match flag. A pull request to Stay, opened but not merged, adds a "Found a dog?" page that uses only a demo gallery built from the test split, stores no user photos, collects no personal data, and shows a visible demo note. **Amended:** the Stay pull request waits until the PetFace authors confirm that their research-only terms allow it. Meanwhile the `POST /match` service is built in this repo only, on a gallery of one photo per dog from the DogFaceNet test split (CC BY 4.0, attributed in every response). Dog face detection (OWL-ViT, chosen on speed) and a square crop come before embedding, a photo with no detected face gets a clear error, and the detection failure rate on the corruption test set is reported in `results/dev/`.
 
 ## Training decisions
 

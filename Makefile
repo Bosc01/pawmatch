@@ -1,5 +1,6 @@
 CONFIG ?= configs/dogfacenet.toml
 RUN ?= arcface_bh
+PORT ?= 8000
 PY = venv/bin/python
 BACKBONES = resnet50_in1k clip_vitb16 dinov2_vits14
 
@@ -35,7 +36,7 @@ detect:
 	$(PY) -m pawmatch.detect $(CONFIG)
 
 serve:
-	PAWMATCH_CONFIG=$(CONFIG) venv/bin/uvicorn --factory pawmatch.serve:build_app --port 8000
+	PAWMATCH_CONFIG=$(CONFIG) venv/bin/uvicorn --factory pawmatch.serve:build_app --port $(PORT)
 
 precision-test:
 	$(PY) -m pawmatch.train $(CONFIG) precision_test
