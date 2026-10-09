@@ -48,7 +48,10 @@ make data        # build, check, and freeze the identity-disjoint split
 make embed       # cache embeddings, corrupted test sets, and patch features
 make eval        # Milestone 1 metrics with bootstrap intervals
 make train       # fine-tune (smoke steps only outside PetFace)
+make rerank-head # cross-attention rerank head (20-step cap outside PetFace)
 make retrieve    # Milestone 2: stage 1, rerank, open set, corruptions, significance
+make detect      # face detector timing and detection failure on the corruption set
+make serve       # POST /match demo service (PORT=8000 by default)
 make export      # flat binary fixtures for the C++ scorer
 make cpp-test    # GoogleTest parity, top-k, and allocation tests
 make bench       # C++ latency benchmark
