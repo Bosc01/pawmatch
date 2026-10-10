@@ -21,4 +21,4 @@ top_k = 5
 no_match_far = 0.01  # no-match threshold from val_a impostors at the gallery size (decisions.md)
 
 [rerank_head]
-steps = 0  # set before the first PetFace run
+steps = 5000  # fixed 2026-10-09; one run, final checkpoint reported (decisions.md)

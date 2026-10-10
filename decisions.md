@@ -152,3 +152,10 @@ This replaces the earlier HTTP 422 response for a photo with no detected face. E
 - One shared path (detect, then the pre-cropped rule, then crop, then embed) produces the service queries, the service gallery (one test photo per dog), and the val_a embeddings that calibrate the no-match threshold. The threshold solves 1 - F(t)^N = 1%, where F is the distribution of val_a impostor scores on that path and N is the gallery size.
 - Every `/match` response labels the no-match flag as calibrated on benchmark photos only, not on real found-dog photos.
 - The achieved FAR is measured on val_b photos, whose dogs are not in the gallery, and reported next to the target in `results/dev/serve_detection.json`. Nothing is fit on val_b.
+
+## Rerank head on PetFace (2026-10-09)
+
+- The cross-attention head does not count toward the three-run fine-tune budget, since its backbone stays frozen.
+- It gets exactly one PetFace run of 5,000 steps, fixed now in `configs/petface.toml` before any PetFace data exists.
+- There is no checkpoint selection: the code saves only the final checkpoint, and that checkpoint is the one reported.
+- Basis for 5,000 steps: 16 anchors per step makes 80,000 anchors, about two thirds of the estimated 117,844 PetFace training photos (70% of 168,348). Each anchor is scored against 8 candidates, about 640,000 scored pairs in total, for a head with 132,225 parameters.
