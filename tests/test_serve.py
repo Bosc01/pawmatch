@@ -69,3 +69,9 @@ def test_align_is_a_square_crop_around_the_box():
     img = Image.new("RGB", (100, 80), "white")
     out = detect.align(img, (20, 10, 60, 40))  # 40 x 30 box -> 48 px square, resized to 224
     assert out.size == (224, 224)
+
+
+def test_iou_hand_computed():
+    assert detect.iou((0, 0, 10, 10), (5, 5, 15, 15)) == pytest.approx(25 / 175)
+    assert detect.iou((0, 0, 10, 10), (0, 0, 10, 10)) == 1.0
+    assert detect.iou((0, 0, 10, 10), (20, 20, 30, 30)) == 0.0

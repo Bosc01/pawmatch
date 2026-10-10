@@ -9,17 +9,21 @@ detection, and the crop, a square centred on the best box with side CROP_SCALE t
 its longer edge, resized to 224 px. Alignment is position and scale only: the detector
 gives no landmarks, so faces are not rotated upright.
 
-Usage: python -m pawmatch.detect CONFIG [speed]
-Writes <results_dir>/serve_detection.json, or detector_speed.json with "speed".
+Usage: python -m pawmatch.detect CONFIG [speed|oxford]
+Writes <results_dir>/serve_detection.json; detector_speed.json with "speed";
+results/detection_oxford.json with "oxford" (a held-out evaluation, not DogFaceNet).
 """
 import json
+import random
 import sys
 import time
+import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
-from pawmatch import corrupt, data, evaluate
+from pawmatch import corrupt, data, evaluate, metrics
 
 DETECTORS = {"owlvit": "google/owlvit-base-patch32", "owlv2": "google/owlv2-base-patch16-ensemble"}
 DETECTOR = "owlvit"
@@ -29,10 +33,12 @@ CROP_SCALE = 1.2
 COVER = 0.5  # a best box over half the photo means the photo is already a face crop
 MODEL = "dinov2_vits14"
 BATCH = 16
+OXFORD = Path("data/oxford_pets")
+GRID = (0.01, 0.05, 0.1, 0.2, 0.3)  # thresholds compared on Oxford half A, fixed before the run
 
 
 class FaceDetector:
-    def __init__(self, name=DETECTOR):
+    def __init__(self, name=DETECTOR, threshold=THRESHOLD):
         import transformers
 
         from pawmatch import embed
@@ -42,6 +48,7 @@ class FaceDetector:
         self.model = getattr(transformers, f"{prefix}ForObjectDetection").from_pretrained(DETECTORS[name])
         self.model.to(embed.device()).eval()
         self.pads_to_square = name == "owlv2"  # OWLv2 boxes are relative to the padded square image
+        self.threshold = threshold
 
     def __call__(self, images):
         """Best face box (x0, y0, x1, y1) and score per PIL image, or None below THRESHOLD."""
@@ -54,7 +61,7 @@ class FaceDetector:
         with torch.no_grad():
             inputs = self.processor(text=texts, images=images, return_tensors="pt").to(embed.device())
             found = self.processor.post_process_grounded_object_detection(
-                self.model(**inputs), threshold=THRESHOLD, target_sizes=sizes, text_labels=texts)
+                self.model(**inputs), threshold=self.threshold, target_sizes=sizes, text_labels=texts)
         out = []
         for r in found:
             if len(r["scores"]) == 0:
@@ -74,18 +81,21 @@ def align(img, box):
     return crop.resize((224, 224), Image.BICUBIC)
 
 
-def face_crop(img, found):
-    """The image the service embeds, and the route that chose it. Design rule for
-    pre-cropped inputs: when no box passes THRESHOLD, or the best box covers more than
-    COVER of the photo, the whole photo is the face crop."""
+def crop_route(found, size):
+    """Design rule for pre-cropped inputs: when no box passed the threshold, or the best
+    box covers more than COVER of the photo, the whole photo is the face crop."""
     if found is None:
-        return img, "whole_photo_no_box"
+        return "whole_photo_no_box"
     x0, y0, x1, y1 = found[0]
-    w, h = img.size
+    w, h = size
     covered = max(0.0, min(x1, w) - max(x0, 0)) * max(0.0, min(y1, h) - max(y0, 0)) / (w * h)
-    if covered > COVER:
-        return img, "whole_photo_box_covers_most"
-    return align(img, found[0]), "face_box"
+    return "whole_photo_box_covers_most" if covered > COVER else "face_box"
+
+
+def face_crop(img, found):
+    """The image the service embeds, and the route that chose it."""
+    route = crop_route(found, img.size)
+    return (align(img, found[0]) if route == "face_box" else img), route
 
 
 def embed_faces(model, tf, faces):
@@ -174,8 +184,108 @@ def evaluate_detection(cfg):
             "corruptions": "SYNTHETIC, queries only, same images as results m2_corruption", **out}
 
 
+def oxford_dogs():
+    """Oxford-IIIT Pet dog photos (species 2) with one head box, readable by PIL:
+    [(path, (x0, y0, x1, y1))], and the number skipped."""
+    species = dict(line.split()[::2][:2] for line in (OXFORD / "annotations" / "list.txt").read_text().splitlines()
+                   if not line.startswith("#"))
+    out, skipped = [], 0
+    for xml in sorted((OXFORD / "annotations" / "xmls").glob("*.xml")):
+        if species.get(xml.stem) != "2":
+            continue
+        objects = ET.parse(xml).getroot().findall("object")
+        path = OXFORD / "images" / f"{xml.stem}.jpg"
+        try:
+            with Image.open(path) as im:
+                im.verify()
+        except Exception:
+            skipped += 1
+            continue
+        if len(objects) != 1:
+            skipped += 1
+            continue
+        b = objects[0].find("bndbox")
+        out.append((str(path), tuple(float(b.find(k).text) for k in ("xmin", "ymin", "xmax", "ymax"))))
+    return out, skipped
+
+
+def iou(a, b):
+    ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+    iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    inter = ix * iy
+    return inter / ((a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter)
+
+
+def oxford():
+    """Recall at IoU 0.5 against Oxford-IIIT Pet dog head boxes, for the box the service
+    uses: the detector's best box, or the whole photo under the pre-cropped rule. Each
+    detector runs once at the lowest grid threshold; a higher threshold keeps the best
+    box only if its score is above it. Half A chooses the detector and threshold by
+    that recall, ties going to the higher threshold and then the faster detector
+    (OWL-ViT); half B reports the choice with a 95% bootstrap interval over images."""
+    commit = evaluate.commit()
+    dogs, skipped = oxford_dogs()
+    order = list(range(len(dogs)))
+    random.Random(0).shuffle(order)
+    halves = {"A": order[:len(order) // 2], "B": order[len(order) // 2:]}
+    sizes = []
+    for p, _ in dogs:
+        with Image.open(p) as im:
+            sizes.append(im.size)
+    best = {}
+    for name in DETECTORS:
+        detector = FaceDetector(name, threshold=min(GRID))
+        best[name] = []
+        for i in range(0, len(dogs), BATCH):
+            images = []
+            for p, _ in dogs[i:i + BATCH]:
+                with Image.open(p) as im:
+                    images.append(im.convert("RGB"))
+            best[name] += detector(images)
+
+    def outcome(name, t, idx):
+        hits, raw, routes = [], [], []
+        for i in idx:
+            found = best[name][i] if best[name][i] and best[name][i][1] > t else None
+            route = crop_route(found, sizes[i])
+            used = found[0] if route == "face_box" else (0, 0, *sizes[i])
+            hits.append(iou(used, dogs[i][1]) >= 0.5)
+            raw.append(found is not None and iou(found[0], dogs[i][1]) >= 0.5)
+            routes.append(route)
+        shares = {r: routes.count(r) / len(routes) for r in ("face_box", "whole_photo_no_box", "whole_photo_box_covers_most")}
+        return np.array(hits), np.array(raw), shares
+
+    grid = []
+    for name in DETECTORS:
+        for t in GRID:
+            hits, raw, shares = outcome(name, t, halves["A"])
+            grid.append({"detector": name, "threshold": t, "recall_at_iou50": float(hits.mean()),
+                         "recall_at_iou50_detector_box_only": float(raw.mean()), "routes": shares})
+    pick = max(grid, key=lambda r: (r["recall_at_iou50"], r["threshold"], r["detector"] == "owlvit"))
+    hits, raw, shares = outcome(pick["detector"], pick["threshold"], halves["B"])
+    units = np.arange(len(hits))
+    return {
+        "dataset": "Oxford-IIIT Pet, dog photos with one head box (CC BY-SA 4.0, Parkhi et al., CVPR 2012)",
+        "code_commit": commit, "hardware": evaluate.hardware(), "query": QUERY, "cover": COVER, "iou": 0.5,
+        "n_photos": len(dogs), "n_skipped": skipped, "split": "by photo, seed 0", "half_a": len(halves["A"]),
+        "half_b": len(halves["B"]), "grid": list(GRID),
+        "selection_rule": "highest half-A recall at IoU 0.5 with the pre-cropped rule; ties to the higher threshold, then OWL-ViT",
+        "half_a_results": grid, "selected": {"detector": pick["detector"], "model": DETECTORS[pick["detector"]],
+                                             "threshold": pick["threshold"]},
+        "half_b_result": {
+            "recall_at_iou50": {"value": float(hits.mean()),
+                                "ci95": metrics.bootstrap_ci(lambda w: np.average(hits, weights=w), units)},
+            "recall_at_iou50_detector_box_only": float(raw.mean()), "routes": shares},
+    }
+
+
 def main(config, job="detection"):
     cfg = data.load_config(config)
+    if job == "oxford":
+        out = Path("results/detection_oxford.json")
+        out.write_text(json.dumps(oxford(), indent=1, default=float) + "\n")
+        print(out)
+        return
     name, result = ("detector_speed", speed(cfg)) if job == "speed" else ("serve_detection", evaluate_detection(cfg))
     out = cfg["results_dir"] / f"{name}.json"
     out.write_text(json.dumps(result, indent=1, default=float) + "\n")

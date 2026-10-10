@@ -105,3 +105,11 @@ data/dogfacenet/after_4_bis/<id>/<id>.<n>.jpg
 ### Stay integration (Milestone 5)
 
 On hold until the PetFace authors confirm whether their research-only terms allow it.
+
+## Oxford-IIIT Pet (detector evaluation only, downloaded 2026-10-09)
+
+- Source: https://www.robots.ox.ac.uk/~vgg/data/pets/ (`images.tar.gz`, `annotations.tar.gz`).
+- License: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0), https://creativecommons.org/licenses/by-sa/4.0/. The project page states that the copyright of the images remains with their original owners. No images are committed or redistributed; the dataset is used only to measure dog face detection.
+- Citation: O. M. Parkhi, A. Vedaldi, A. Zisserman, C. V. Jawahar, "Cats and Dogs", IEEE Conference on Computer Vision and Pattern Recognition (CVPR), 2012.
+- Local copy: `images.tar.gz` SHA-256 `67195c5e1c01f1ab5f9b6a5d22b8c27a580d896ece458917e61d459337fa318d`, `annotations.tar.gz` SHA-256 `52425fb6de5c424942b7626b428656fcbd798db970a937df61750c0f1d358e91`, extracted under `data/oxford_pets/`.
+- Use: dog images only (species 2 in `annotations/list.txt`) that have a head bounding box in `annotations/xmls/`. They are split in half by image with a fixed seed. Half A chooses the detector and threshold; half B reports recall at IoU 0.5.
