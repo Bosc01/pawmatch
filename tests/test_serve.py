@@ -1,5 +1,7 @@
 """The /match endpoint with stand-in detection and embedding: no models are loaded."""
 import io
+import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -84,3 +86,11 @@ def test_align_stays_inside_the_photo():
     assert out.getextrema() == ((255, 255), (255, 255), (255, 255))
     out = detect.align(img, (0, 0, 100, 80))  # 1.2 x 100 > 80: the side is capped at the shorter edge
     assert out.size == (224, 224) and out.getextrema() == ((255, 255), (255, 255), (255, 255))
+
+
+def test_service_detector_matches_the_oxford_half_a_choice():
+    path = Path("results/detection_oxford.json")
+    if not path.exists():
+        pytest.skip("no Oxford selection yet")
+    chosen = json.loads(path.read_text())["selected"]
+    assert (detect.DETECTOR, detect.THRESHOLD) == (chosen["detector"], chosen["threshold"])

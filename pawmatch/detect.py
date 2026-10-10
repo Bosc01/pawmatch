@@ -1,13 +1,14 @@
 """Dog face detection and alignment before embedding, for the /match service.
 Models load lazily, so the service tests run without torch.
 
-OWL-ViT (google/owlvit-base-patch32, Apache 2.0) is queried zero-shot with one text,
-QUERY. It was chosen over OWLv2 on speed alone, a rule set before any detection
-result was measured (results/dev/detector_speed.json). Fixed in advance and not tuned
-on any data: the score threshold 0.1, which is the transformers default for OWL
-detection, and the crop, a square centred on the best box with side CROP_SCALE times
-its longer edge, resized to 224 px. Alignment is position and scale only: the detector
-gives no landmarks, so faces are not rotated upright.
+The detector and its score threshold were chosen on half A of the Oxford-IIIT Pet dog
+photos by recall at IoU 0.5 against head boxes, and half B reports the choice
+(results/detection_oxford.json; tests/test_serve.py checks the constants match it).
+Both OWL-ViT and OWLv2 (Apache 2.0) are queried zero-shot with one text, QUERY.
+Fixed in advance: the crop, a square around the best box with side CROP_SCALE times
+its longer edge, kept inside the photo, at 224 px, and the pre-cropped rule (COVER).
+Alignment is position and scale only: the detector gives no landmarks, so faces are
+not rotated upright.
 
 Usage: python -m pawmatch.detect CONFIG [speed|oxford]
 Writes <results_dir>/serve_detection.json; detector_speed.json with "speed";
@@ -26,9 +27,9 @@ from PIL import Image
 from pawmatch import corrupt, data, evaluate, metrics
 
 DETECTORS = {"owlvit": "google/owlvit-base-patch32", "owlv2": "google/owlv2-base-patch16-ensemble"}
-DETECTOR = "owlvit"
+DETECTOR = "owlvit"  # chosen on Oxford half A
 QUERY = "a photo of a dog's face"
-THRESHOLD = 0.1
+THRESHOLD = 0.01  # chosen on Oxford half A
 CROP_SCALE = 1.2
 ROUTES = ("face_box", "whole_photo_no_box", "whole_photo_box_covers_most")
 COVER = 0.5  # a best box over half the photo means the photo is already a face crop

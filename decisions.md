@@ -159,3 +159,18 @@ This replaces the earlier HTTP 422 response for a photo with no detected face. E
 - It gets exactly one PetFace run of 5,000 steps, fixed now in `configs/petface.toml` before any PetFace data exists.
 - There is no checkpoint selection: the code saves only the final checkpoint, and that checkpoint is the one reported.
 - Basis for 5,000 steps: 16 anchors per step makes 80,000 anchors, about two thirds of the estimated 117,844 PetFace training photos (70% of 168,348). Each anchor is scored against 8 candidates, about 640,000 scored pairs in total, for a head with 132,225 parameters.
+
+## Detector chosen on Oxford-IIIT Pet (2026-10-09)
+
+Protocol, fixed before the run:
+
+- The data is the 2,490 Oxford-IIIT Pet dog photos with one head box, split in half by photo with seed 0.
+- Both detectors ran at five thresholds (0.01, 0.05, 0.1, 0.2, 0.3), with the pre-cropped rule applied.
+- Half A chose by recall at IoU 0.5 of the box the service would use, with ties going to the higher threshold and then to OWL-ViT. Half B reports the choice once.
+
+Choice: OWL-ViT at threshold 0.01 (`results/detection_oxford.json`), which replaces the earlier speed-only choice at 0.1. The half B recall is in the same file.
+
+Two limits:
+
+- **The threshold choice was degenerate.** With dog photos only, a lower threshold can never lose recall, so the lowest grid value won. The threshold's other job, rejecting photos with no dog, cannot be measured without negative photos.
+- **Recall is low for both detectors.** With the text "a photo of a dog's face", both often return a box around the whole dog rather than the head, and on half B many photos fall back to the whole photo because the best box covers most of it. A detector trained for dog heads is the likely fix.
