@@ -39,6 +39,7 @@ def test_match_returns_top5_sorted_with_no_match_flag():
     assert [m["dog_id"] for m in body["matches"]] == ["dog0", "dog1", "dog2", "dog3", "dog4"]
     assert body["matches"][0]["score"] == pytest.approx(0.9 / np.linalg.norm([0.9, 0.3, 0.1]))
     assert body["no_match"] is False and body["description_used"] is False
+    assert body["no_match_calibration"] == serve.NO_MATCH_CALIBRATION
     assert "CC BY 4.0" in body["attribution"] and body["face"]["box"] == [8.0, 4.0, 40.0, 36.0]
     assert body["face"]["route"] == "face_box" and body["face"]["note"] is None
     strict = _client(threshold=0.99).post("/match", files={"photo": ("dog.png", _png("red"))})
@@ -75,3 +76,11 @@ def test_iou_hand_computed():
     assert detect.iou((0, 0, 10, 10), (5, 5, 15, 15)) == pytest.approx(25 / 175)
     assert detect.iou((0, 0, 10, 10), (0, 0, 10, 10)) == 1.0
     assert detect.iou((0, 0, 10, 10), (20, 20, 30, 30)) == 0.0
+
+
+def test_align_stays_inside_the_photo():
+    img = Image.new("RGB", (100, 80), "white")
+    out = detect.align(img, (70, 50, 98, 78))  # box at the corner: the square shifts inward, no black fill
+    assert out.getextrema() == ((255, 255), (255, 255), (255, 255))
+    out = detect.align(img, (0, 0, 100, 80))  # 1.2 x 100 > 80: the side is capped at the shorter edge
+    assert out.size == (224, 224) and out.getextrema() == ((255, 255), (255, 255), (255, 255))

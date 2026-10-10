@@ -89,6 +89,27 @@ def compute(items, emb, pairs, seed, unknown_frac, n_boot):
     return out, {"rank1": ranks == 1, "dogs": qd}
 
 
+def pair_scores(emb, dogs, thresholds=None):
+    """All unordered pairs of distinct photos, split into same-dog (genuine) and
+    different-dog (impostor) scores. With thresholds, impostors are only counted."""
+    gen, gen_dogs, imp, accepted, n_imp = [], [], [], np.zeros(len(thresholds or [])), 0
+    for i in range(0, len(emb), CHUNK):
+        rows = np.arange(i, min(i + CHUNK, len(emb)))
+        S = emb[rows] @ emb.T
+        upper = np.arange(len(emb))[None, :] > rows[:, None]
+        same = dogs[rows][:, None] == dogs[None, :]
+        gen.append(S[upper & same])
+        gen_dogs.append(np.broadcast_to(dogs[rows][:, None], S.shape)[upper & same])
+        s = S[upper & ~same]
+        if thresholds is None:
+            imp.append(s)
+        else:
+            accepted += [(s >= t).sum() for t in thresholds]
+            n_imp += s.size
+    gen, gen_dogs = np.concatenate(gen), np.concatenate(gen_dogs)
+    return (gen, gen_dogs, np.concatenate(imp)) if thresholds is None else (gen, gen_dogs, accepted / n_imp)
+
+
 def save_per_query(cfg, name, **arrays):
     """Per-query arrays for pawmatch.significance, kept in the cache (not committed)."""
     out = cfg["cache_dir"] / "per_query" / f"{name}.npz"

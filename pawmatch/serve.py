@@ -25,6 +25,8 @@ WHOLE_PHOTO = {
     "whole_photo_box_covers_most": "The dog's face fills most of the photo, so the whole photo was matched.",
 }
 NOT_IMAGE = "The upload is not a readable image."
+NO_MATCH_CALIBRATION = ("The no-match flag is calibrated on benchmark photos only (DogFaceNet val_a photos "
+                        "through the same detect-and-crop path), not on real found-dog photos.")
 DEMO_NOTE = "Demo only. The gallery is a public research dataset, not real lost-dog reports."
 ATTRIBUTION = ("Gallery photos: DogFaceNet test split, CC BY 4.0. Guillaume Mougeot, 'The DogFaceNet "
                "datasets', Zenodo, 2024, doi:10.5281/zenodo.12578449.")
@@ -46,6 +48,7 @@ class Matcher:
             "matches": [{"rank": r + 1, "dog_id": str(self.dogs[i]), "score": float(scores[i])} for r, i in enumerate(top)],
             "no_match": bool(scores[top[0]] < self.threshold),
             "no_match_threshold": self.threshold,
+            "no_match_calibration": NO_MATCH_CALIBRATION,
             "face": {"route": route, "note": WHOLE_PHOTO.get(route),
                      "box": None if found is None else [round(v, 1) for v in found[0]],
                      "score": None if found is None else found[1]},
@@ -75,16 +78,12 @@ def create_app(matcher):
 
 
 def build_app():
-    """Factory for uvicorn: reads PAWMATCH_CONFIG and loads the models and gallery."""
-    from pawmatch import data, embed, metrics, retrieve
+    """Factory for uvicorn: reads PAWMATCH_CONFIG, loads the models, and builds or loads
+    the gallery and no-match threshold through the service path."""
+    from pawmatch import data
 
     cfg = data.load_config(os.environ.get("PAWMATCH_CONFIG", "configs/dogfacenet.toml"))
-    s = cfg["serve"]
-    splits, _ = data.load_splits(cfg)
-    g, _, _ = data.gallery_query(splits["test"], cfg["protocol"]["seed"])
-    test = np.load(cfg["cache_dir"] / s["model"] / "test.npz")
-    va = np.load(cfg["cache_dir"] / s["model"] / "val_a.npz")
-    threshold = metrics.threshold_for_gallery(retrieve._pairs(va["emb"], va["dogs"])[2], s["no_match_far"], len(g))[0]
-    model, tf = embed.build(s["model"])
-    return create_app(Matcher(detect.FaceDetector(), lambda face: detect.embed_faces(model, tf, [face])[0],
-                              test["emb"][g], test["dogs"][g], threshold, s["top_k"]))
+    path = detect.ServicePath(cfg["serve"]["model"])
+    gallery, dogs, threshold, _ = detect.service_index(cfg, path)
+    return create_app(Matcher(path.detector, lambda face: detect.embed_faces(path.model, path.tf, [face])[0],
+                              gallery, dogs, threshold, cfg["serve"]["top_k"]))

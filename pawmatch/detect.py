@@ -30,6 +30,7 @@ DETECTOR = "owlvit"
 QUERY = "a photo of a dog's face"
 THRESHOLD = 0.1
 CROP_SCALE = 1.2
+ROUTES = ("face_box", "whole_photo_no_box", "whole_photo_box_covers_most")
 COVER = 0.5  # a best box over half the photo means the photo is already a face crop
 MODEL = "dinov2_vits14"
 BATCH = 16
@@ -73,12 +74,15 @@ class FaceDetector:
 
 
 def align(img, box):
-    """Square crop centred on the face box, side CROP_SCALE times its longer edge, at
-    224 px. Parts of the square outside the photo are filled with black."""
+    """Square crop around the face box at 224 px: side CROP_SCALE times the box's longer
+    edge but no larger than the photo's shorter side, shifted to lie inside the photo,
+    so nothing is padded."""
     x0, y0, x1, y1 = box
-    cx, cy, half = (x0 + x1) / 2, (y0 + y1) / 2, CROP_SCALE * max(x1 - x0, y1 - y0) / 2
-    crop = img.crop((round(cx - half), round(cy - half), round(cx + half), round(cy + half)))
-    return crop.resize((224, 224), Image.BICUBIC)
+    w, h = img.size
+    side = min(CROP_SCALE * max(x1 - x0, y1 - y0), w, h)
+    left = min(max((x0 + x1 - side) / 2, 0), w - side)
+    top = min(max((y0 + y1 - side) / 2, 0), h - side)
+    return img.crop((round(left), round(top), round(left + side), round(top + side))).resize((224, 224), Image.BICUBIC)
 
 
 def crop_route(found, size):
@@ -138,50 +142,102 @@ def speed(cfg):
             "rule": "detector chosen on speed alone, a rule set before any detection failure rate was measured (decisions.md notes one earlier single-image spot check)", "detectors": out}
 
 
+def shares(routes):
+    return {r: routes.count(r) / len(routes) for r in ROUTES}
+
+
+class ServicePath:
+    """Detect, crop, and embed: the one path for service queries, the service gallery,
+    and the val_a photos that calibrate the no-match threshold."""
+
+    def __init__(self, model_name=MODEL):
+        from pawmatch import embed
+
+        self.detector = FaceDetector()
+        self.model, self.tf = embed.build(model_name)
+
+    def __call__(self, images):
+        """Embeddings, crop routes, and whether a box passed the threshold."""
+        found = [f for i in range(0, len(images), BATCH) for f in self.detector(images[i:i + BATCH])]
+        crops = [face_crop(im, f) for im, f in zip(images, found)]
+        return (embed_faces(self.model, self.tf, [c for c, _ in crops]), [r for _, r in crops],
+                np.array([f is not None for f in found]))
+
+    def items(self, items, indices, corruption=None, chunk=256):
+        """The same for photos of a split, by index, in chunks."""
+        indices = np.asarray(indices)
+        parts = [self(_images(items, indices[i:i + chunk], corruption)) for i in range(0, len(indices), chunk)]
+        return (np.concatenate([p[0] for p in parts]), [r for p in parts for r in p[1]],
+                np.concatenate([p[2] for p in parts]))
+
+
+def service_index(cfg, path=None):
+    """The service gallery (one test photo per dog) and its no-match threshold, both
+    through the service path, cached per split, detector, and settings. The threshold
+    is calibrated on benchmark photos only: F over pairs of val_a photos of different
+    dogs, solving 1 - F(t)^N = the target FAR for a gallery of N dogs."""
+    splits, sha = data.load_splits(cfg)
+    s = cfg["serve"]
+    key = f"{sha}|{DETECTORS[DETECTOR]}|{THRESHOLD}|{CROP_SCALE}|{COVER}|{s['model']}|{s['no_match_far']}"
+    cache = cfg["cache_dir"] / "service_index.npz"
+    if cache.exists() and str(np.load(cache)["key"]) == key:
+        z = np.load(cache, allow_pickle=False)
+        return z["gallery"], z["dogs"], float(z["threshold"]), json.loads(str(z["calibration"]))
+    path = path or ServicePath(s["model"])
+    items = splits["test"]
+    g, _, _ = data.gallery_query(items, cfg["protocol"]["seed"])
+    gallery, g_routes, g_found = path.items(items, g)
+    va = splits["val_a"]
+    va_emb, va_routes, _ = path.items(va, range(len(va)))
+    imp = evaluate.pair_scores(va_emb, np.array([d for _, d in va]))[2]
+    threshold, per, res = metrics.threshold_for_gallery(imp, s["no_match_far"], len(g))
+    calibration = {"calibrated_on": "benchmark photos only: val_a photos through the service path",
+                   "target_far": s["no_match_far"], "gallery_size": len(g), "threshold": threshold,
+                   "per_impostor_far": per, "val_a_resolution": res, "below_resolution": per < res,
+                   "val_a_routes": shares(va_routes), "gallery_routes": shares(g_routes),
+                   "gallery_detection_failure_rate": float(1 - g_found.mean())}
+    dogs = np.array([d for _, d in items])[g]
+    np.savez(cache, key=key, gallery=gallery, dogs=dogs, threshold=threshold, calibration=json.dumps(calibration))
+    return gallery, dogs, threshold, calibration
+
+
 def evaluate_detection(cfg):
-    """Detection failure rate on the test queries, clean and under each SYNTHETIC
-    corruption, plus rank-1 through the full service path (detect, align, embed,
-    search the one-photo-per-dog gallery). A detection failure counts as a miss."""
+    """The service path on test photos: detection failure and crop routes for the
+    queries, clean and under each SYNTHETIC corruption, rank-1 against the gallery
+    (which goes through the same path), and the share of queries that are both
+    correct and above the no-match threshold. The threshold's achieved FAR is measured
+    on val_b photos, whose dogs are not in the gallery, next to its target."""
     commit = evaluate.commit()  # before the run: later edits must not change the stamp
     splits, sha = data.load_splits(cfg)
     items, seed, n_boot = splits["test"], cfg["protocol"]["seed"], cfg["protocol"]["bootstrap"]
     dogs = np.array([d for _, d in items])
     g, q, _ = data.gallery_query(items, seed)
-    gallery = np.load(cfg["cache_dir"] / MODEL / "test.npz")["emb"][g]
-    from pawmatch import embed
-
-    detector, (model, tf) = FaceDetector(), embed.build(MODEL)
-
-    def run(indices, corruption, chunk=256):
-        ok, hit = np.zeros(len(indices), bool), np.zeros(len(indices), bool)
-        for start in range(0, len(indices), chunk):
-            part = np.asarray(indices[start:start + chunk])
-            images = _images(items, part, corruption)
-            found = [f for i in range(0, len(images), BATCH) for f in detector(images[i:i + BATCH])]
-            got = np.array([f is not None for f in found])
-            ok[start:start + len(part)] = got
-            if got.any():
-                faces = [align(im, f[0]) for im, f in zip(images, found) if f is not None]
-                ranks = evaluate._ranks(embed_faces(model, tf, faces), dogs[part][got], gallery, dogs[g])
-                hit[start:start + len(part)][got] = ranks == 1
-        return ok, hit
-
+    path = ServicePath(cfg["serve"]["model"])
+    gallery, g_dogs, threshold, calibration = service_index(cfg, path)
+    vb = splits["val_b"]
+    best_b = (path.items(vb, range(len(vb)))[0] @ gallery.T).max(1)
+    calibration = {**calibration, "achieved_far_val_b": float((best_b >= threshold).mean()), "n_val_b_photos": len(vb)}
     qd = dogs[q]
-    ok, _ = run(g, None)
-    out = {"gallery_photos": {"n": len(g), "detection_failure_rate": float(1 - ok.mean())}, "queries": {}}
+    out = {}
     for condition in (None, *corrupt.CORRUPTIONS):
-        ok, hit = run(q, condition)
-        out["queries"][condition or "clean"] = {
-            "n": len(q),
-            "detection_failure_rate": evaluate._score(~ok, qd, n_boot, seed),
-            "rank1_end_to_end": evaluate._score(hit, qd, n_boot, seed),
-            "rank1_among_detected": evaluate._score(hit[ok], qd[ok], n_boot, seed) if ok.any() else None,
+        emb, routes, found = path.items(items, q, condition)
+        hit = evaluate._ranks(emb, qd, gallery, g_dogs) == 1
+        best = np.concatenate([(emb[i:i + 1024] @ gallery.T).max(1) for i in range(0, len(emb), 1024)])
+        boxed = np.array([r == "face_box" for r in routes])
+        out[condition or "clean"] = {
+            "n": len(q), "routes": shares(routes),
+            "detection_failure_rate": evaluate._score(~found, qd, n_boot, seed),
+            "rank1": evaluate._score(hit, qd, n_boot, seed),
+            "rank1_face_box_route": evaluate._score(hit[boxed], qd[boxed], n_boot, seed) if boxed.any() else None,
+            "correct_and_above_no_match_threshold": evaluate._score(hit & (best >= threshold), qd, n_boot, seed),
         }
-        print(condition or "clean", f"failure {1 - ok.mean():.4f}", f"end-to-end rank-1 {hit.mean():.4f}")
+        print(condition or "clean", f"no box {1 - found.mean():.4f}", f"rank-1 {hit.mean():.4f}")
     return {"dataset": cfg["dataset"]["name"], "split": "test", "split_sha256": sha, "code_commit": commit,
             "detector": DETECTORS[DETECTOR], "query": QUERY, "threshold": THRESHOLD, "crop_scale": CROP_SCALE,
-            "embedding_model": MODEL, "gallery": "one photo per test dog, embedded without detection (already face crops)",
-            "corruptions": "SYNTHETIC, queries only, same images as results m2_corruption", **out}
+            "cover": COVER, "embedding_model": cfg["serve"]["model"],
+            "gallery": "one photo per test dog, through the same detect-and-crop path as queries",
+            "corruptions": "SYNTHETIC, queries only, same images as results m2_corruption",
+            "no_match_calibration": calibration, "queries": out}
 
 
 def oxford_dogs():

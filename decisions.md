@@ -145,3 +145,10 @@ DogFaceNet is capped at 20 steps. After 20 steps the loss stayed near ln 8, the 
 The service uses the whole photo as the face crop when no box passes the detection threshold, or when the best box covers more than half of the photo. Benchmark photos such as DogFaceNet are already tight face crops, so the detector often finds no box in them, or a box covering nearly the whole frame. The 60% detection failure on clean DogFaceNet queries measured that property of the test set, not the detector, and nothing is tuned on it. The cutoff of half the photo was fixed in advance.
 
 This replaces the earlier HTTP 422 response for a photo with no detected face. Every response now reports which route produced the crop: `face_box`, `whole_photo_no_box`, or `whole_photo_box_covers_most`. A whole-photo route comes with a plain note.
+
+## Crop and no-match calibration (2026-10-09)
+
+- The face crop expands to a square inside the photo instead of padding with black. Its side is 1.2 times the box's longer edge, capped at the photo's shorter side, and it shifts inward to stay inside the photo.
+- One shared path (detect, then the pre-cropped rule, then crop, then embed) produces the service queries, the service gallery (one test photo per dog), and the val_a embeddings that calibrate the no-match threshold. The threshold solves 1 - F(t)^N = 1%, where F is the distribution of val_a impostor scores on that path and N is the gallery size.
+- Every `/match` response labels the no-match flag as calibrated on benchmark photos only, not on real found-dog photos.
+- The achieved FAR is measured on val_b photos, whose dogs are not in the gallery, and reported next to the target in `results/dev/serve_detection.json`. Nothing is fit on val_b.

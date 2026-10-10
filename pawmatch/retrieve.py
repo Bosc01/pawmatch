@@ -215,27 +215,6 @@ def rerank(cfg, splits, sha, seed, n_boot):
     return out
 
 
-def _pairs(emb, dogs, thresholds=None):
-    """All unordered pairs of distinct photos, split into same-dog (genuine) and
-    different-dog (impostor) scores. With thresholds, impostors are only counted."""
-    gen, gen_dogs, imp, accepted, n_imp = [], [], [], np.zeros(len(thresholds or [])), 0
-    for i in range(0, len(emb), CHUNK):
-        rows = np.arange(i, min(i + CHUNK, len(emb)))
-        S = emb[rows] @ emb.T
-        upper = np.arange(len(emb))[None, :] > rows[:, None]
-        same = dogs[rows][:, None] == dogs[None, :]
-        gen.append(S[upper & same])
-        gen_dogs.append(np.broadcast_to(dogs[rows][:, None], S.shape)[upper & same])
-        s = S[upper & ~same]
-        if thresholds is None:
-            imp.append(s)
-        else:
-            accepted += [(s >= t).sum() for t in thresholds]
-            n_imp += s.size
-    gen, gen_dogs = np.concatenate(gen), np.concatenate(gen_dogs)
-    return (gen, gen_dogs, np.concatenate(imp)) if thresholds is None else (gen, gen_dogs, accepted / n_imp)
-
-
 def _best(emb, items, seed, frac):
     """Open-set protocol: top gallery score and its correctness for every query, and
     the gallery size."""
@@ -263,11 +242,11 @@ def open_set(cfg, splits, seed, frac, n_boot):
         va, te = _load(cfg, tag, "val_a"), _load(cfg, tag, "test")
         if va is None or te is None:
             continue
-        _, _, imp = _pairs(va["emb"], va["dogs"])
+        _, _, imp = evaluate.pair_scores(va["emb"], va["dogs"])
         best, correct, known, qd, n_gallery = _best(te["emb"], splits["test"], seed, frac)
         tv = [metrics.threshold_for_gallery(imp, f, 1) for f in FARS]
         ti = [metrics.threshold_for_gallery(imp, f, n_gallery) for f in FARS]
-        gen, gen_dogs, test_far_v = _pairs(te["emb"], te["dogs"], [t for t, _, _ in tv])
+        gen, gen_dogs, test_far_v = evaluate.pair_scores(te["emb"], te["dogs"], [t for t, _, _ in tv])
         res = {}
         for k, far in enumerate(FARS):
             (t_v, _, res_v), (t_i, per_i, res_i) = tv[k], ti[k]
