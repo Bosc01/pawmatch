@@ -26,6 +26,7 @@ DETECTOR = "owlvit"
 QUERY = "a photo of a dog's face"
 THRESHOLD = 0.1
 CROP_SCALE = 1.2
+COVER = 0.5  # a best box over half the photo means the photo is already a face crop
 MODEL = "dinov2_vits14"
 BATCH = 16
 
@@ -71,6 +72,20 @@ def align(img, box):
     cx, cy, half = (x0 + x1) / 2, (y0 + y1) / 2, CROP_SCALE * max(x1 - x0, y1 - y0) / 2
     crop = img.crop((round(cx - half), round(cy - half), round(cx + half), round(cy + half)))
     return crop.resize((224, 224), Image.BICUBIC)
+
+
+def face_crop(img, found):
+    """The image the service embeds, and the route that chose it. Design rule for
+    pre-cropped inputs: when no box passes THRESHOLD, or the best box covers more than
+    COVER of the photo, the whole photo is the face crop."""
+    if found is None:
+        return img, "whole_photo_no_box"
+    x0, y0, x1, y1 = found[0]
+    w, h = img.size
+    covered = max(0.0, min(x1, w) - max(x0, 0)) * max(0.0, min(y1, h) - max(y0, 0)) / (w * h)
+    if covered > COVER:
+        return img, "whole_photo_box_covers_most"
+    return align(img, found[0]), "face_box"
 
 
 def embed_faces(model, tf, faces):

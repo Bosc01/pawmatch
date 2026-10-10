@@ -139,3 +139,9 @@ Design, fixed before any run (`pawmatch/xattn.py`):
 - **Scoring:** the stage-1 top 100 of each test query, fused two ways (head score alone, and RRF with the stage-1 order). The comparisons enter the Benjamini-Hochberg set.
 
 DogFaceNet is capped at 20 steps. After 20 steps the loss stayed near ln 8, the chance level for 8 candidates, and the head scores were uncorrelated with stage-1 similarity, so the DogFaceNet rerank numbers (`results/dev/m2_rerank.json`) only show that the plumbing runs. The PetFace step count is set before the first PetFace run.
+
+## Design rule for pre-cropped inputs (2026-10-09)
+
+The service uses the whole photo as the face crop when no box passes the detection threshold, or when the best box covers more than half of the photo. Benchmark photos such as DogFaceNet are already tight face crops, so the detector often finds no box in them, or a box covering nearly the whole frame. The 60% detection failure on clean DogFaceNet queries measured that property of the test set, not the detector, and nothing is tuned on it. The cutoff of half the photo was fixed in advance.
+
+This replaces the earlier HTTP 422 response for a photo with no detected face. Every response now reports which route produced the crop: `face_box`, `whole_photo_no_box`, or `whole_photo_box_covers_most`. A whole-photo route comes with a plain note.

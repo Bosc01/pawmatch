@@ -40,13 +40,24 @@ def test_match_returns_top5_sorted_with_no_match_flag():
     assert body["matches"][0]["score"] == pytest.approx(0.9 / np.linalg.norm([0.9, 0.3, 0.1]))
     assert body["no_match"] is False and body["description_used"] is False
     assert "CC BY 4.0" in body["attribution"] and body["face"]["box"] == [8.0, 4.0, 40.0, 36.0]
+    assert body["face"]["route"] == "face_box" and body["face"]["note"] is None
     strict = _client(threshold=0.99).post("/match", files={"photo": ("dog.png", _png("red"))})
     assert strict.json()["no_match"] is True
 
 
-def test_no_face_is_a_clear_error():
+def test_no_face_falls_back_to_the_whole_photo_and_says_so():
     r = _client().post("/match", files={"photo": ("dark.png", _png("black"))})
-    assert r.status_code == 422 and r.json()["detail"] == serve.NO_FACE
+    face = r.json()["face"]
+    assert r.status_code == 200 and face["route"] == "whole_photo_no_box" and face["box"] is None
+    assert face["note"] == serve.WHOLE_PHOTO["whole_photo_no_box"]
+
+
+def test_face_crop_routes():
+    img = Image.new("RGB", (100, 80), "white")
+    assert detect.face_crop(img, None)[1] == "whole_photo_no_box"
+    assert detect.face_crop(img, ((0, 0, 90, 70), 0.5))[1] == "whole_photo_box_covers_most"  # 79% of the photo
+    crop, route = detect.face_crop(img, ((20, 10, 60, 40), 0.5))  # 15% of the photo
+    assert route == "face_box" and crop.size == (224, 224)
 
 
 def test_non_image_is_rejected():

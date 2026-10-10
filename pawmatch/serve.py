@@ -20,7 +20,10 @@ from PIL import Image, UnidentifiedImageError
 from pawmatch import detect
 
 MAX_BYTES = 10 * 2**20
-NO_FACE = "No dog face was found in this photo. Try a photo where the dog's face is clearly visible."
+WHOLE_PHOTO = {
+    "whole_photo_no_box": "No separate dog face was found, so the whole photo was matched.",
+    "whole_photo_box_covers_most": "The dog's face fills most of the photo, so the whole photo was matched.",
+}
 NOT_IMAGE = "The upload is not a readable image."
 DEMO_NOTE = "Demo only. The gallery is a public research dataset, not real lost-dog reports."
 ATTRIBUTION = ("Gallery photos: DogFaceNet test split, CC BY 4.0. Guillaume Mougeot, 'The DogFaceNet "
@@ -36,16 +39,16 @@ class Matcher:
 
     def __call__(self, img):
         found = self.detect_faces([img])[0]
-        if found is None:
-            return None
-        box, face_score = found
-        scores = self.gallery @ self.embed_face(detect.align(img, box))
+        crop, route = detect.face_crop(img, found)
+        scores = self.gallery @ self.embed_face(crop)
         top = np.argsort(-scores, kind="stable")[:self.top_k]
         return {
             "matches": [{"rank": r + 1, "dog_id": str(self.dogs[i]), "score": float(scores[i])} for r, i in enumerate(top)],
             "no_match": bool(scores[top[0]] < self.threshold),
             "no_match_threshold": self.threshold,
-            "face": {"box": [round(v, 1) for v in box], "score": face_score},
+            "face": {"route": route, "note": WHOLE_PHOTO.get(route),
+                     "box": None if found is None else [round(v, 1) for v in found[0]],
+                     "score": None if found is None else found[1]},
         }
 
 
@@ -66,10 +69,7 @@ def create_app(matcher):
                 img = im.convert("RGB")
         except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
             raise HTTPException(400, NOT_IMAGE)
-        result = matcher(img)
-        if result is None:
-            raise HTTPException(422, NO_FACE)
-        return {**result, "description_used": False, "note": DEMO_NOTE, "attribution": ATTRIBUTION}
+        return {**matcher(img), "description_used": False, "note": DEMO_NOTE, "attribution": ATTRIBUTION}
 
     return app
 
