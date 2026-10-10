@@ -20,12 +20,12 @@
  },
  "microchip_return_to_owner_dogs": {
   "microchipped_stray_dogs": 0.522,
-  "comparison_stray_dogs": 0.219,
+  "all_stray_dogs": 0.219,
   "measure": "share of stray dogs returned to their owners",
+  "comparison_group": "all stray dogs entering the participating shelters, as described by the Ohio State University release of October 11, 2009",
   "study": "53 animal shelters in 23 US states, August 2007 to March 2008, 7,704 microchipped animals",
-  "source": "Lord LK, Ingwersen W, Gray JL, Wintz DJ. Characterization of animals with microchips entering animal shelters. J Am Vet Med Assoc. 2009;235(2):160-167. doi:10.2460/javma.235.2.160. PMID 19601734. Peer reviewed.",
-  "percentages_reported_by": "JAVMA News (American Veterinary Medical Association), 'Pet owners, shelters, and clinics: Check the chip', August 1, 2017, citing the paper. The paper's full text was not accessible; the PubMed abstract does not give these two percentages.",
-  "comparison_group": "JAVMA News describes it as dogs without microchips. The Ohio State University release of October 11, 2009 describes it as all stray dogs entering the shelters.",
+  "primary_source": "Lord LK, Ingwersen W, Gray JL, Wintz DJ. Characterization of animals with microchips entering animal shelters. J Am Vet Med Assoc. 2009;235(2):160-167. doi:10.2460/javma.235.2.160. PMID 19601734. Peer reviewed.",
+  "source_of_percentages": "JAVMA News (American Veterinary Medical Association), 'Pet owners, shelters, and clinics: Check the chip', August 1, 2017, citing the paper. The paper's full text was not accessible, and the PubMed abstract does not give these two percentages.",
   "abstract_check": "The abstract reports owners found for 2,191 of 2,956 microchipped stray dogs (74.1%), a different measure from return to owner.",
   "url": "https://pubmed.ncbi.nlm.nih.gov/19601734/"
  }
