@@ -42,3 +42,8 @@ def test_report_never_reads_results_dev(tmp_path, monkeypatch):
 def test_external_figures_are_never_offered_as_results(tmp_path):
     (tmp_path / "external.json").write_text(json.dumps({"shelter_intakes_2025": {"value": 5800000}}))
     assert report.facts(tmp_path) == []
+
+
+def test_vecstore_numbers_are_never_offered_as_results(tmp_path):
+    (tmp_path / "m2_ann.json").write_text(json.dumps({"vecstore": {"brute_force": {"p50_ms": 0.068}}, "flat_ms": 0.141}))
+    assert report.facts(tmp_path) == ["m2_ann.json: flat_ms = 0.141"]

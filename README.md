@@ -39,6 +39,10 @@ Apple M5, 24 GB RAM, 1 thread, top 100, one query at a time. Each figure is the 
 | 50,000 | v5_ilp | 1802.5 | 3171.9 | 6640.3 | 0 |
 <!-- m4:end -->
 
+## Note on the vecstore ablation
+
+On DogFaceNet development data, vecstore's brute-force search measured faster than FAISS `IndexFlatIP`, with both pinned to one thread. vecstore calls NumPy, and this NumPy build runs its matrix-vector product in Apple Accelerate, while FAISS uses its own SIMD loop. The win belongs to Accelerate, not to vecstore's code, and it is not claimed as a project result.
+
 `make readme` generates the tables above from `results/*.json`. DogFaceNet runs used to build and test the pipeline are written to `results/dev/` and never appear here; `tests/test_report.py` enforces that.
 
 ## Running

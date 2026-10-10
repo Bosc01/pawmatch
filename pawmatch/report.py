@@ -82,7 +82,9 @@ def facts(root="results"):
                 yield from walk(v, f"{key}[{i}]")
         elif isinstance(x, (int, float)) and not isinstance(x, bool):
             yield key, x
-    return [f"{name}: {k} = {v}" for name, r in load_results(root).items() if name != EXTERNAL for k, v in walk(r, "")]
+    # vecstore's brute-force speed comes from Apple Accelerate under NumPy, not from vecstore (README).
+    return [f"{name}: {k} = {v}" for name, r in load_results(root).items() if name != EXTERNAL
+            for k, v in walk(r, "") if "vecstore" not in k]
 
 
 if __name__ == "__main__":
