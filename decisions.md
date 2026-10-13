@@ -212,3 +212,5 @@ The script refuses to run without a frozen PetFace split, with uncommitted chang
 To support this, the code now prefers CUDA, then MPS, then CPU. `evaluate.hardware()` reports the platform and GPU on Linux, and each fine-tune checkpoint records its hardware and commit.
 
 Simpler option chosen: images load in the training loop without DataLoader workers, as on the Mac. If GPU utilization turns out low, worker processes are the first speedup to try.
+
+Outcome (2026-10-13, `results/detection_oxford_trained.json`): on half A's internal validation, every threshold from 0.01 to 0.2 tied at the top, so the tie rule chose 0.2. The trained detector beat OWL-ViT there by a wide margin, so the service now uses it (`detect.DETECTOR = "frcnn_head"`, threshold 0.2). Half B, the second look, confirms the gain over the 31.00% OWL-ViT baseline. Caveat: the detector trains and tests on Oxford photos, so this is in-distribution recall; transfer to real found-dog photos is unmeasured. Detector work now stops until PetFace results are in.

@@ -1,0 +1,127 @@
+{
+ "dataset": "Oxford-IIIT Pet, dog photos with one head box (CC BY-SA 4.0, Parkhi et al., CVPR 2012)",
+ "code_commit": "117c60f",
+ "hardware": "Apple M5, 24 GB RAM",
+ "model": "torchvision fasterrcnn_mobilenet_v3_large_fpn, COCO weights, one-class head",
+ "training": {
+  "epochs": 10,
+  "batch": 2,
+  "lr": 0.005,
+  "momentum": 0.9,
+  "weight_decay": 0.0005,
+  "lr_step_epochs": 3,
+  "lr_gamma": 0.1,
+  "source": "torchvision detection fine-tuning tutorial",
+  "log": [
+   {
+    "epoch": 1,
+    "mean_loss": 0.6697872658091856,
+    "lr_end": 0.005
+   },
+   {
+    "epoch": 2,
+    "mean_loss": 0.6056077842073269,
+    "lr_end": 0.005
+   },
+   {
+    "epoch": 3,
+    "mean_loss": 0.5410429117789709,
+    "lr_end": 0.005
+   },
+   {
+    "epoch": 4,
+    "mean_loss": 0.4732761846249362,
+    "lr_end": 0.0005
+   },
+   {
+    "epoch": 5,
+    "mean_loss": 0.445033707577421,
+    "lr_end": 0.0005
+   },
+   {
+    "epoch": 6,
+    "mean_loss": 0.41344861165586727,
+    "lr_end": 0.0005
+   },
+   {
+    "epoch": 7,
+    "mean_loss": 0.3623236424652448,
+    "lr_end": 5.000000000000001e-05
+   },
+   {
+    "epoch": 8,
+    "mean_loss": 0.3530265343296959,
+    "lr_end": 5.000000000000001e-05
+   },
+   {
+    "epoch": 9,
+    "mean_loss": 0.3479401761269474,
+    "lr_end": 5.000000000000001e-05
+   },
+   {
+    "epoch": 10,
+    "mean_loss": 0.33972496862512036,
+    "lr_end": 5.000000000000001e-06
+   }
+  ]
+ },
+ "half_a_split": {
+  "train": 996,
+  "internal_val": 249,
+  "seed": 1
+ },
+ "internal_val_threshold_grid": [
+  {
+   "threshold": 0.01,
+   "recall_at_iou50": 0.9919678714859438
+  },
+  {
+   "threshold": 0.05,
+   "recall_at_iou50": 0.9919678714859438
+  },
+  {
+   "threshold": 0.1,
+   "recall_at_iou50": 0.9919678714859438
+  },
+  {
+   "threshold": 0.2,
+   "recall_at_iou50": 0.9919678714859438
+  },
+  {
+   "threshold": 0.3,
+   "recall_at_iou50": 0.9839357429718876
+  }
+ ],
+ "selected_threshold": 0.2,
+ "internal_val_service_choice": {
+  "recall_at_iou50": {
+   "frcnn_head": 0.9919678714859438,
+   "owlvit": 0.30522088353413657
+  },
+  "selected": "frcnn_head",
+  "threshold": 0.2
+ },
+ "half_b_result": {
+  "look": "second look at half B (the first was the OWL-ViT choice in detection_oxford.json)",
+  "recall_at_iou50": {
+   "value": 0.9815261044176706,
+   "ci95": [
+    0.9734939759036144,
+    0.9887550200803212
+   ]
+  },
+  "recall_at_iou50_detector_box_only": 0.9879518072289156,
+  "routes": {
+   "face_box": 0.9357429718875502,
+   "whole_photo_no_box": 0.001606425702811245,
+   "whole_photo_box_covers_most": 0.06265060240963856
+  },
+  "baseline_owlvit_half_b": {
+   "value": 0.3100401606425703,
+   "ci95": [
+    0.2859437751004016,
+    0.33495983935742973
+   ]
+  }
+ }
+}

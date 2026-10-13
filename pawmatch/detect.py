@@ -1,10 +1,13 @@
 """Dog face detection and alignment before embedding, for the /match service.
 Models load lazily, so the service tests run without torch.
 
-The detector and its score threshold were chosen on half A of the Oxford-IIIT Pet dog
-photos by recall at IoU 0.5 against head boxes, and half B reports the choice
-(results/detection_oxford.json; tests/test_serve.py checks the constants match it).
-Both OWL-ViT and OWLv2 (Apache 2.0) are queried zero-shot with one text, QUERY.
+The detector and its score threshold are chosen on Oxford-IIIT Pet half A by recall at
+IoU 0.5 against dog head boxes; half B is evaluated once per choice. The first choice
+was zero-shot OWL-ViT (results/detection_oxford.json); the current one is a Faster
+R-CNN head detector trained on half A (pawmatch.headdet), chosen on half A's internal
+validation (results/detection_oxford_trained.json). tests/test_serve.py checks that
+the constants match the latest choice. OWL-ViT and OWLv2 (Apache 2.0) are queried
+zero-shot with one text, QUERY.
 Fixed in advance: the crop, a square around the best box with side CROP_SCALE times
 its longer edge, kept inside the photo, at 224 px, and the pre-cropped rule (COVER).
 Alignment is position and scale only: the detector gives no landmarks, so faces are
@@ -28,9 +31,9 @@ from pawmatch import corrupt, data, evaluate, metrics
 
 DETECTORS = {"owlvit": "google/owlvit-base-patch32", "owlv2": "google/owlv2-base-patch16-ensemble",
              "frcnn_head": "Faster R-CNN MobileNetV3 dog-head detector trained on Oxford half A (pawmatch.headdet)"}
-DETECTOR = "owlvit"  # chosen on Oxford half A
+DETECTOR = "frcnn_head"  # chosen on Oxford half A internal validation (results/detection_oxford_trained.json)
 QUERY = "a photo of a dog's face"
-THRESHOLD = 0.01  # chosen on Oxford half A
+THRESHOLD = 0.2  # chosen on Oxford half A internal validation
 CROP_SCALE = 1.2
 ROUTES = ("face_box", "whole_photo_no_box", "whole_photo_box_covers_most")
 COVER = 0.5  # a best box over half the photo means the photo is already a face crop
