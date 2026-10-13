@@ -18,7 +18,7 @@ run_c_arm = ""  # arm with higher closed-set val_a rank-1 after runs (a) and (b)
 [serve]
 model = "dinov2_vits14"
 top_k = 5
-no_match_far = 0.01  # no-match threshold from val_a impostors at the gallery size (decisions.md)
+confident_gallery_far = 0.1  # product choice: confidence label at 10% gallery-level FAR on val_a (decisions.md)
 
 [rerank_head]
 steps = 5000  # fixed 2026-10-09; one run, final checkpoint reported (decisions.md)

@@ -173,33 +173,37 @@ class ServicePath:
 
 
 def service_index(cfg, path=None):
-    """The service gallery (one test photo per dog) and its no-match threshold, both
-    through the service path, cached per split, detector, and settings. The threshold
-    is calibrated on benchmark photos only: F over pairs of val_a photos of different
-    dogs, solving 1 - F(t)^N = the target FAR for a gallery of N dogs."""
+    """The service gallery (one test photo per dog) and the val_a impostor scores that
+    calibrate the confidence label, both through the service path, cached per split,
+    detector, and settings. The threshold itself is computed at serving time from the
+    actual gallery size (confidence_threshold)."""
     splits, sha = data.load_splits(cfg)
     s = cfg["serve"]
-    key = f"{sha}|{DETECTORS[DETECTOR]}|{THRESHOLD}|{CROP_SCALE}|{COVER}|{s['model']}|{s['no_match_far']}"
+    key = f"{sha}|{DETECTORS[DETECTOR]}|{THRESHOLD}|{CROP_SCALE}|{COVER}|{s['model']}"
     cache = cfg["cache_dir"] / "service_index.npz"
     if cache.exists() and str(np.load(cache)["key"]) == key:
         z = np.load(cache, allow_pickle=False)
-        return z["gallery"], z["dogs"], float(z["threshold"]), json.loads(str(z["calibration"]))
+        return z["gallery"], z["dogs"], z["impostors"], json.loads(str(z["calibration"]))
     path = path or ServicePath(s["model"])
     items = splits["test"]
     g, _, _ = data.gallery_query(items, cfg["protocol"]["seed"])
     gallery, g_routes, g_found = path.items(items, g)
     va = splits["val_a"]
     va_emb, va_routes, _ = path.items(va, range(len(va)))
-    imp = evaluate.pair_scores(va_emb, np.array([d for _, d in va]))[2]
-    threshold, per, res = metrics.threshold_for_gallery(imp, s["no_match_far"], len(g))
+    impostors = np.sort(evaluate.pair_scores(va_emb, np.array([d for _, d in va]))[2])
     calibration = {"calibrated_on": "benchmark photos only: val_a photos through the service path",
-                   "target_far": s["no_match_far"], "gallery_size": len(g), "threshold": threshold,
-                   "per_impostor_far": per, "val_a_resolution": res, "below_resolution": per < res,
-                   "val_a_routes": shares(va_routes), "gallery_routes": shares(g_routes),
-                   "gallery_detection_failure_rate": float(1 - g_found.mean())}
+                   "n_val_a_impostor_pairs": len(impostors), "val_a_routes": shares(va_routes),
+                   "gallery_routes": shares(g_routes), "gallery_detection_failure_rate": float(1 - g_found.mean())}
     dogs = np.array([d for _, d in items])[g]
-    np.savez(cache, key=key, gallery=gallery, dogs=dogs, threshold=threshold, calibration=json.dumps(calibration))
-    return gallery, dogs, threshold, calibration
+    np.savez(cache, key=key, gallery=gallery, dogs=dogs, impostors=impostors, calibration=json.dumps(calibration))
+    return gallery, dogs, impostors, calibration
+
+
+def confidence_threshold(impostors, gallery_far, gallery_size):
+    """Product operating point: the top match is labeled confident when its score is at
+    or above t, with 1 - F(t)^N = gallery_far for the actual gallery size N, F being the
+    val_a impostor score distribution. Returns (t, per-impostor rate, resolution)."""
+    return metrics.threshold_for_gallery(impostors, gallery_far, gallery_size)
 
 
 def evaluate_detection(cfg):
@@ -214,10 +218,15 @@ def evaluate_detection(cfg):
     dogs = np.array([d for _, d in items])
     g, q, _ = data.gallery_query(items, seed)
     path = ServicePath(cfg["serve"]["model"])
-    gallery, g_dogs, threshold, calibration = service_index(cfg, path)
+    gallery, g_dogs, impostors, calibration = service_index(cfg, path)
+    far = cfg["serve"]["confident_gallery_far"]
+    threshold, per, res = confidence_threshold(impostors, far, len(gallery))
     vb = splits["val_b"]
     best_b = (path.items(vb, range(len(vb)))[0] @ gallery.T).max(1)
-    calibration = {**calibration, "achieved_far_val_b": float((best_b >= threshold).mean()), "n_val_b_photos": len(vb)}
+    calibration = {**calibration, "operating_point": "product choice, calibrated on val_a",
+                   "target_gallery_far": far, "gallery_size": len(gallery), "threshold": threshold,
+                   "per_impostor_far": per, "val_a_resolution": res, "below_resolution": per < res,
+                   "achieved_gallery_far_val_b": float((best_b >= threshold).mean()), "n_val_b_photos": len(vb)}
     qd = dogs[q]
     out = {}
     for condition in (None, *corrupt.CORRUPTIONS):
@@ -230,7 +239,7 @@ def evaluate_detection(cfg):
             "detection_failure_rate": evaluate._score(~found, qd, n_boot, seed),
             "rank1": evaluate._score(hit, qd, n_boot, seed),
             "rank1_face_box_route": evaluate._score(hit[boxed], qd[boxed], n_boot, seed) if boxed.any() else None,
-            "correct_and_above_no_match_threshold": evaluate._score(hit & (best >= threshold), qd, n_boot, seed),
+            "correct_and_confident": evaluate._score(hit & (best >= threshold), qd, n_boot, seed),
         }
         print(condition or "clean", f"no box {1 - found.mean():.4f}", f"rank-1 {hit.mean():.4f}")
     return {"dataset": cfg["dataset"]["name"], "split": "test", "split_sha256": sha, "code_commit": commit,
@@ -238,7 +247,7 @@ def evaluate_detection(cfg):
             "cover": COVER, "embedding_model": cfg["serve"]["model"],
             "gallery": "one photo per test dog, through the same detect-and-crop path as queries",
             "corruptions": "SYNTHETIC, queries only, same images as results m2_corruption",
-            "no_match_calibration": calibration, "queries": out}
+            "confidence_calibration": calibration, "queries": out}
 
 
 def oxford_dogs():

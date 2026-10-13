@@ -2,8 +2,8 @@
 
 A found-dog photo goes through dog face detection and alignment (pawmatch.detect),
 embedding, and exact search over a gallery of one photo per dog from the test split.
-The no-match flag uses the open-set rule from Milestone 2: a threshold from the
-val_a impostor score distribution at the gallery size. Photos are processed in memory
+The confidence label uses the open-set rule from Milestone 2 at a product operating
+point: a threshold from the val_a impostor score distribution at the gallery size. Photos are processed in memory
 and never stored, and no personal data is collected. This is a demo: the gallery is a
 public research dataset, not real lost-dog reports. The optional description is
 accepted but not used until the Milestone 3 text model exists.
@@ -25,19 +25,23 @@ WHOLE_PHOTO = {
     "whole_photo_box_covers_most": "The dog's face fills most of the photo, so the whole photo was matched.",
 }
 NOT_IMAGE = "The upload is not a readable image."
-NO_MATCH_CALIBRATION = ("The no-match flag is calibrated on benchmark photos only (DogFaceNet val_a photos "
-                        "through the same detect-and-crop path), not on real found-dog photos.")
+CONFIDENCE_CALIBRATION = ("The confidence label is a product choice calibrated on benchmark photos only "
+                          "(DogFaceNet val_a photos through the same detect-and-crop path), not on real "
+                          "found-dog photos. All five candidates are always returned.")
 DEMO_NOTE = "Demo only. The gallery is a public research dataset, not real lost-dog reports."
 ATTRIBUTION = ("Gallery photos: DogFaceNet test split, CC BY 4.0. Guillaume Mougeot, 'The DogFaceNet "
                "datasets', Zenodo, 2024, doi:10.5281/zenodo.12578449.")
 
 
 class Matcher:
-    """detect(images) -> [(box, score) or None]; embed_face(PIL image) -> unit vector."""
+    """detect(images) -> [(box, score) or None]; embed_face(PIL image) -> unit vector.
+    The confidence threshold is computed here, at serving time, from the actual gallery
+    size and the val_a impostor scores (detect.confidence_threshold)."""
 
-    def __init__(self, detect_faces, embed_face, gallery, gallery_dogs, threshold, top_k=5):
+    def __init__(self, detect_faces, embed_face, gallery, gallery_dogs, impostors, gallery_far, top_k=5):
         self.detect_faces, self.embed_face = detect_faces, embed_face
-        self.gallery, self.dogs, self.threshold, self.top_k = gallery, gallery_dogs, threshold, top_k
+        self.gallery, self.dogs, self.gallery_far, self.top_k = gallery, gallery_dogs, gallery_far, top_k
+        self.threshold = detect.confidence_threshold(impostors, gallery_far, len(gallery))[0]
 
     def __call__(self, img):
         found = self.detect_faces([img])[0]
@@ -46,9 +50,10 @@ class Matcher:
         top = np.argsort(-scores, kind="stable")[:self.top_k]
         return {
             "matches": [{"rank": r + 1, "dog_id": str(self.dogs[i]), "score": float(scores[i])} for r, i in enumerate(top)],
-            "no_match": bool(scores[top[0]] < self.threshold),
-            "no_match_threshold": self.threshold,
-            "no_match_calibration": NO_MATCH_CALIBRATION,
+            "confidence": "confident_match" if scores[top[0]] >= self.threshold else "uncertain",
+            "confidence_threshold": self.threshold,
+            "operating_point": {"gallery_far": self.gallery_far, "gallery_size": len(self.gallery)},
+            "confidence_calibration": CONFIDENCE_CALIBRATION,
             "face": {"route": route, "note": WHOLE_PHOTO.get(route),
                      "box": None if found is None else [round(v, 1) for v in found[0]],
                      "score": None if found is None else found[1]},
@@ -84,6 +89,6 @@ def build_app():
 
     cfg = data.load_config(os.environ.get("PAWMATCH_CONFIG", "configs/dogfacenet.toml"))
     path = detect.ServicePath(cfg["serve"]["model"])
-    gallery, dogs, threshold, _ = detect.service_index(cfg, path)
+    gallery, dogs, impostors, _ = detect.service_index(cfg, path)
     return create_app(Matcher(path.detector, lambda face: detect.embed_faces(path.model, path.tf, [face])[0],
-                              gallery, dogs, threshold, cfg["serve"]["top_k"]))
+                              gallery, dogs, impostors, cfg["serve"]["confident_gallery_far"], cfg["serve"]["top_k"]))

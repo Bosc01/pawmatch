@@ -24,6 +24,7 @@ def _png(color):
 
 
 def _client(threshold=0.5):
+    impostors = np.full(1000, threshold - 1e-3)  # every impostor score just under the intended threshold
     def detect_faces(images):  # a black photo has no face
         return [None if max(im.getextrema()[0]) == 0 else ((8.0, 4.0, 40.0, 36.0), 0.9) for im in images]
 
@@ -31,21 +32,22 @@ def _client(threshold=0.5):
         v = np.array([0.9, 0.3, 0.1, 0, 0, 0])
         return v / np.linalg.norm(v)
 
-    return TestClient(serve.create_app(serve.Matcher(detect_faces, embed_face, GALLERY, DOGS, threshold)))
+    return TestClient(serve.create_app(serve.Matcher(detect_faces, embed_face, GALLERY, DOGS, impostors, 0.1)))
 
 
-def test_match_returns_top5_sorted_with_no_match_flag():
+def test_match_returns_top5_sorted_with_a_confidence_label():
     r = _client().post("/match", files={"photo": ("dog.png", _png("red"))}, data={"description": "brown lab"})
     assert r.status_code == 200
     body = r.json()
     assert [m["dog_id"] for m in body["matches"]] == ["dog0", "dog1", "dog2", "dog3", "dog4"]
     assert body["matches"][0]["score"] == pytest.approx(0.9 / np.linalg.norm([0.9, 0.3, 0.1]))
-    assert body["no_match"] is False and body["description_used"] is False
-    assert body["no_match_calibration"] == serve.NO_MATCH_CALIBRATION
+    assert body["confidence"] == "confident_match" and body["description_used"] is False
+    assert body["confidence_calibration"] == serve.CONFIDENCE_CALIBRATION
+    assert body["operating_point"] == {"gallery_far": 0.1, "gallery_size": 6}
     assert "CC BY 4.0" in body["attribution"] and body["face"]["box"] == [8.0, 4.0, 40.0, 36.0]
     assert body["face"]["route"] == "face_box" and body["face"]["note"] is None
-    strict = _client(threshold=0.99).post("/match", files={"photo": ("dog.png", _png("red"))})
-    assert strict.json()["no_match"] is True
+    strict = _client(threshold=0.99).post("/match", files={"photo": ("dog.png", _png("red"))}).json()
+    assert strict["confidence"] == "uncertain" and len(strict["matches"]) == 5  # a label, not a filter
 
 
 def test_no_face_falls_back_to_the_whole_photo_and_says_so():

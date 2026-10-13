@@ -174,3 +174,11 @@ Two limits:
 
 - **The threshold choice was degenerate.** With dog photos only, a lower threshold can never lose recall, so the lowest grid value won. The threshold's other job, rejecting photos with no dog, cannot be measured without negative photos.
 - **Recall is low for both detectors.** With the text "a photo of a dog's face", both often return a box around the whole dog rather than the head, and on half B many photos fall back to the whole photo because the best box covers most of it. A detector trained for dog heads is the likely fix.
+
+## Confidence label instead of a no-match filter (2026-10-13)
+
+- `/match` always returns the top 5 candidates. The old no-match flag is now a confidence label on the top match, `confident_match` or `uncertain`, and nothing is filtered out.
+- **Product choice:** the operating point is a 10% gallery-level false-accept rate. The label is `confident_match` when the top score is at or above t, where 1 - F(t)^N = 0.1, F is the distribution of val_a impostor scores through the service path, and N is the gallery size.
+- The service computes t when it starts, from the gallery it actually loaded, so the threshold follows the gallery size. Only the val_a impostor scores are cached.
+- The benchmark tables still report TAR at FAR 1% and 0.1%; this operating point applies to the service only.
+- The achieved gallery-level FAR is measured on val_b photos and on Oxford-IIIT Pet cat photos (`results/dev/serve_detection.json`).
