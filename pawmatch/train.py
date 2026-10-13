@@ -116,8 +116,8 @@ def fit(model, tf, items, hard_negative_weight, steps, seed=0, precision="fp32",
         loss.backward()
         opt.step()
         sched.step()
-        if dev.type == "mps":
-            torch.mps.synchronize()
+        if dev.type in ("mps", "cuda"):
+            getattr(torch, dev.type).synchronize()
         log.append({"phase": "head" if frozen else "full", "arcface": arc.item(), "batch_hard": bh.item(),
                     "seconds": time.perf_counter() - start})
         if (step + 1) % log_every == 0 or step + 1 == steps:
@@ -173,7 +173,8 @@ def main(config, run):
     log = fit(model, tf, splits["train"], RUNS[arm], t["steps"], cfg["dataset"]["seed"], t["precision"],
               augment=run == RUN_C, log_every=1 if t["steps"] <= SMOKE_STEPS else 50)
     out.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"backbone": model.cpu().state_dict(), "run": run, "arm": arm, "log": log}, out)
+    torch.save({"backbone": model.cpu().state_dict(), "run": run, "arm": arm, "log": log,
+                "hardware": evaluate.hardware(), "code_commit": evaluate.commit()}, out)
     print(out)
 
 

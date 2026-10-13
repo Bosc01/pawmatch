@@ -4,6 +4,7 @@ Usage: python -m pawmatch.evaluate CONFIG TAG
 Writes <results_dir>/m1_<TAG>.json. Every interval is a 95% bootstrap over query dogs.
 """
 import json
+import platform
 import subprocess
 import sys
 
@@ -123,8 +124,14 @@ def commit():
 
 
 def hardware():
-    sysctl = lambda key: subprocess.run(["sysctl", "-n", key], capture_output=True, text=True).stdout.strip()
-    return f"{sysctl('machdep.cpu.brand_string')}, {int(sysctl('hw.memsize')) // 2**30} GB RAM"
+    run = lambda *a: subprocess.run(a, capture_output=True, text=True).stdout.strip()
+    if sys.platform == "darwin":
+        return f"{run('sysctl', '-n', 'machdep.cpu.brand_string')}, {int(run('sysctl', '-n', 'hw.memsize')) // 2**30} GB RAM"
+    try:
+        gpu = run("nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader")
+    except FileNotFoundError:
+        gpu = ""
+    return f"{platform.platform()}; GPU: {gpu or 'none'}"
 
 
 def main(config, tag):

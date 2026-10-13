@@ -197,3 +197,18 @@ Fixed before the run (`pawmatch/headdet.py`):
 - **Stop:** after this, there is no more detector work until PetFace results are in.
 
 The model weights were fetched with curl into the torch cache, because this Python build has no certificate bundle; the file's SHA-256 prefix `fb6a3cc7` matches torchvision's published name.
+
+## Cloud path for the PetFace fine-tunes (2026-10-13)
+
+`scripts/cloud_finetune.sh USER@HOST RUN` runs one PetFace fine-tune on a GPU machine that is already running.
+
+1. It syncs the code, configs, frozen split, and git history, with no images in git.
+2. It rsyncs the PetFace images, builds the venv, and checks that a CUDA GPU is visible.
+3. It runs `make train` for that run: the fine-tune, the run's embeddings, and its Milestone 1 evaluation.
+4. It copies the results, checkpoint, embeddings, per-query file, and log back.
+
+The script refuses to run without a frozen PetFace split, with uncommitted changes, or when the run already has a checkpoint, which keeps the three-run budget. It rents, starts, and stops nothing.
+
+To support this, the code now prefers CUDA, then MPS, then CPU. `evaluate.hardware()` reports the platform and GPU on Linux, and each fine-tune checkpoint records its hardware and commit.
+
+Simpler option chosen: images load in the training loop without DataLoader workers, as on the Mac. If GPU utilization turns out low, worker processes are the first speedup to try.
