@@ -236,7 +236,8 @@ def evaluate_detection(cfg):
     calibration = {**calibration, "operating_point": "product choice, calibrated on val_a",
                    "target_gallery_far": far, "gallery_size": len(gallery), "threshold": threshold,
                    "per_impostor_far": per, "val_a_resolution": res, "below_resolution": per < res,
-                   "achieved_gallery_far_val_b": float((best_b >= threshold).mean()), "n_val_b_photos": len(vb)}
+                   "achieved_gallery_far_val_b": float((best_b >= threshold).mean()), "n_val_b_photos": len(vb),
+                   "oxford_cats": oxford_cats_confident(path, gallery, threshold)}
     qd = dogs[q]
     out = {}
     for condition in (None, *corrupt.CORRUPTIONS):
@@ -260,29 +261,57 @@ def evaluate_detection(cfg):
             "confidence_calibration": calibration, "queries": out}
 
 
+def oxford_species():
+    """{photo name: "1" for cat, "2" for dog} from the Oxford-IIIT Pet list."""
+    return dict(line.split()[::2][:2] for line in (OXFORD / "annotations" / "list.txt").read_text().splitlines()
+                if not line.startswith("#"))
+
+
+def readable(path):
+    try:
+        with Image.open(path) as im:
+            im.verify()
+        return True
+    except Exception:
+        return False
+
+
 def oxford_dogs():
     """Oxford-IIIT Pet dog photos (species 2) with one head box, readable by PIL:
     [(path, (x0, y0, x1, y1))], and the number skipped."""
-    species = dict(line.split()[::2][:2] for line in (OXFORD / "annotations" / "list.txt").read_text().splitlines()
-                   if not line.startswith("#"))
+    species = oxford_species()
     out, skipped = [], 0
     for xml in sorted((OXFORD / "annotations" / "xmls").glob("*.xml")):
         if species.get(xml.stem) != "2":
             continue
         objects = ET.parse(xml).getroot().findall("object")
         path = OXFORD / "images" / f"{xml.stem}.jpg"
-        try:
-            with Image.open(path) as im:
-                im.verify()
-        except Exception:
-            skipped += 1
-            continue
-        if len(objects) != 1:
+        if not readable(path) or len(objects) != 1:
             skipped += 1
             continue
         b = objects[0].find("bndbox")
         out.append((str(path), tuple(float(b.find(k).text) for k in ("xmin", "ymin", "xmax", "ymax"))))
     return out, skipped
+
+
+def oxford_cats_confident(path, gallery, threshold, chunk=256):
+    """Non-dog negative set: every readable Oxford-IIIT Pet cat photo goes through the
+    service path against the dog gallery. A cat should never be a confident match, so
+    the share labeled confident_match is a gallery-level false-accept rate."""
+    names = sorted(n for n, sp in oxford_species().items() if sp == "1")
+    paths = [p for p in (OXFORD / "images" / f"{n}.jpg" for n in names) if readable(p)]
+    best, routes = [], []
+    for i in range(0, len(paths), chunk):
+        images = []
+        for p in paths[i:i + chunk]:
+            with Image.open(p) as im:
+                images.append(im.convert("RGB"))
+        emb, r, _ = path(images)
+        best.append((emb @ gallery.T).max(1))
+        routes += r
+    best = np.concatenate(best)
+    return {"n_photos": len(paths), "n_unreadable": len(names) - len(paths),
+            "confident_match_rate": float((best >= threshold).mean()), "routes": shares(routes)}
 
 
 def oxford_halves():
