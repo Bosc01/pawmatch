@@ -90,9 +90,13 @@ def test_align_stays_inside_the_photo():
     assert out.size == (224, 224) and out.getextrema() == ((255, 255), (255, 255), (255, 255))
 
 
-def test_service_detector_matches_the_oxford_half_a_choice():
-    path = Path("results/detection_oxford.json")
-    if not path.exists():
+def test_service_detector_matches_the_latest_half_a_choice():
+    trained, zero_shot = Path("results/detection_oxford_trained.json"), Path("results/detection_oxford.json")
+    if trained.exists():
+        chosen = json.loads(trained.read_text())["internal_val_service_choice"]
+    elif zero_shot.exists():
+        chosen = json.loads(zero_shot.read_text())["selected"]
+    else:
         pytest.skip("no Oxford selection yet")
-    chosen = json.loads(path.read_text())["selected"]
-    assert (detect.DETECTOR, detect.THRESHOLD) == (chosen["detector"], chosen["threshold"])
+    assert (detect.DETECTOR, detect.THRESHOLD) == (chosen["selected"] if "selected" in chosen else chosen["detector"],
+                                                   chosen["threshold"])
