@@ -182,3 +182,18 @@ Two limits:
 - The service computes t when it starts, from the gallery it actually loaded, so the threshold follows the gallery size. Only the val_a impostor scores are cached.
 - The benchmark tables still report TAR at FAR 1% and 0.1%; this operating point applies to the service only.
 - The achieved gallery-level FAR is measured on val_b photos and on Oxford-IIIT Pet cat photos (`results/dev/serve_detection.json`).
+
+## Trained dog-head detector (2026-10-13)
+
+Fixed before the run (`pawmatch/headdet.py`):
+
+- **Model:** torchvision Faster R-CNN with a MobileNetV3-Large FPN backbone, COCO-pretrained, with a one-class box head. Ultralytics models were excluded because of their AGPL license.
+- **Training:** the settings of the torchvision object detection fine-tuning tutorial: SGD, learning rate 0.005, momentum 0.9, weight decay 0.0005, the learning rate divided by 10 every 3 epochs, 10 epochs, batch 2, horizontal flips, and a linear warm-up over the first epoch. Reason: a published recipe for exactly this model family avoids choosing hyperparameters myself. Alternative noted: a longer schedule.
+- **Data:** Oxford half A only, split 80/20 by photo with seed 1 into 996 training and 249 internal-validation photos. No checkpoint selection: the final weights are used.
+- **Selection, on internal validation only:**
+  - The score threshold comes from the same grid as before, chosen by recall at IoU 0.5 under the pre-cropped rule, with ties going to the higher threshold.
+  - The service detector, this one or OWL-ViT at 0.01, is chosen by the same recall on the same 249 photos, with ties going to OWL-ViT because it needs no training. OWL-ViT never trained on these photos, so the comparison is fair.
+- **Half B:** this detector is reported once, labeled as the second look at half B, next to the 31.00% OWL-ViT baseline.
+- **Stop:** after this, there is no more detector work until PetFace results are in.
+
+The model weights were fetched with curl into the torch cache, because this Python build has no certificate bundle; the file's SHA-256 prefix `fb6a3cc7` matches torchvision's published name.

@@ -26,7 +26,8 @@ from PIL import Image
 
 from pawmatch import corrupt, data, evaluate, metrics
 
-DETECTORS = {"owlvit": "google/owlvit-base-patch32", "owlv2": "google/owlv2-base-patch16-ensemble"}
+DETECTORS = {"owlvit": "google/owlvit-base-patch32", "owlv2": "google/owlv2-base-patch16-ensemble",
+             "frcnn_head": "Faster R-CNN MobileNetV3 dog-head detector trained on Oxford half A (pawmatch.headdet)"}
 DETECTOR = "owlvit"  # chosen on Oxford half A
 QUERY = "a photo of a dog's face"
 THRESHOLD = 0.01  # chosen on Oxford half A
@@ -147,6 +148,15 @@ def shares(routes):
     return {r: routes.count(r) / len(routes) for r in ROUTES}
 
 
+def make_detector(name=DETECTOR, threshold=THRESHOLD):
+    """The service detector by name: zero-shot OWL models, or the trained head detector."""
+    if name == "frcnn_head":
+        from pawmatch import headdet
+
+        return headdet.HeadDetector(threshold)
+    return FaceDetector(name, threshold)
+
+
 class ServicePath:
     """Detect, crop, and embed: the one path for service queries, the service gallery,
     and the val_a photos that calibrate the no-match threshold."""
@@ -154,7 +164,7 @@ class ServicePath:
     def __init__(self, model_name=MODEL):
         from pawmatch import embed
 
-        self.detector = FaceDetector()
+        self.detector = make_detector()
         self.model, self.tf = embed.build(model_name)
 
     def __call__(self, images):
@@ -275,6 +285,41 @@ def oxford_dogs():
     return out, skipped
 
 
+def oxford_halves():
+    """The fixed split of the Oxford dog photos: half A for selection, half B one-shot."""
+    dogs, skipped = oxford_dogs()
+    order = list(range(len(dogs)))
+    random.Random(0).shuffle(order)
+    return dogs, skipped, {"A": order[:len(order) // 2], "B": order[len(order) // 2:]}
+
+
+def best_boxes(detector, paths):
+    """Best box and score per photo, or None, in batches."""
+    found = []
+    for i in range(0, len(paths), BATCH):
+        images = []
+        for p in paths[i:i + BATCH]:
+            with Image.open(p) as im:
+                images.append(im.convert("RGB"))
+        found += detector(images)
+    return found
+
+
+def recall_with_rule(found, sizes, truths, t):
+    """Per photo: whether the box the service would use (best box above t, or the whole
+    photo under the pre-cropped rule) has IoU >= 0.5 with the head box; whether the
+    detector's own box does; and the crop route."""
+    hits, raw, routes = [], [], []
+    for f, size, truth in zip(found, sizes, truths):
+        f = f if f and f[1] > t else None
+        route = crop_route(f, size)
+        used = f[0] if route == "face_box" else (0, 0, *size)
+        hits.append(iou(used, truth) >= 0.5)
+        raw.append(f is not None and iou(f[0], truth) >= 0.5)
+        routes.append(route)
+    return np.array(hits), np.array(raw), routes
+
+
 def iou(a, b):
     ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
     iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
@@ -290,10 +335,7 @@ def oxford():
     that recall, ties going to the higher threshold and then the faster detector
     (OWL-ViT); half B reports the choice with a 95% bootstrap interval over images."""
     commit = evaluate.commit()
-    dogs, skipped = oxford_dogs()
-    order = list(range(len(dogs)))
-    random.Random(0).shuffle(order)
-    halves = {"A": order[:len(order) // 2], "B": order[len(order) // 2:]}
+    dogs, skipped, halves = oxford_halves()
     sizes = []
     for p, _ in dogs:
         with Image.open(p) as im:
