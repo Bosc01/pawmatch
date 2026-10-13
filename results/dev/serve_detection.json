@@ -2,215 +2,227 @@
  "dataset": "dogfacenet",
  "split": "test",
  "split_sha256": "e913cb14af098b4610c56ca2d1890b535d9e8be14a465da220e551d0122d28db",
- "code_commit": "2c9d548",
- "detector": "google/owlvit-base-patch32",
+ "code_commit": "4773a59",
+ "detector": "Faster R-CNN MobileNetV3 dog-head detector trained on Oxford half A (pawmatch.headdet)",
  "query": "a photo of a dog's face",
- "threshold": 0.01,
+ "threshold": 0.2,
  "crop_scale": 1.2,
  "cover": 0.5,
  "embedding_model": "dinov2_vits14",
  "gallery": "one photo per test dog, through the same detect-and-crop path as queries",
  "corruptions": "SYNTHETIC, queries only, same images as results m2_corruption",
- "no_match_calibration": {
+ "confidence_calibration": {
   "calibrated_on": "benchmark photos only: val_a photos through the service path",
-  "target_far": 0.01,
-  "gallery_size": 279,
-  "threshold": 0.8435105085372925,
-  "per_impostor_far": 3.602206034233824e-05,
-  "val_a_resolution": 1.2176708392187424e-05,
-  "below_resolution": false,
+  "n_val_a_impostor_pairs": 82124,
   "val_a_routes": {
-   "face_box": 0.11735941320293398,
-   "whole_photo_no_box": 0.0,
-   "whole_photo_box_covers_most": 0.882640586797066
+   "face_box": 0.27383863080684595,
+   "whole_photo_no_box": 0.007334963325183374,
+   "whole_photo_box_covers_most": 0.7188264058679706
   },
   "gallery_routes": {
-   "face_box": 0.12903225806451613,
-   "whole_photo_no_box": 0.0,
-   "whole_photo_box_covers_most": 0.8709677419354839
+   "face_box": 0.2867383512544803,
+   "whole_photo_no_box": 0.007168458781362007,
+   "whole_photo_box_covers_most": 0.7060931899641577
   },
-  "gallery_detection_failure_rate": 0.0,
-  "achieved_far_val_b": 0.002352941176470588,
-  "n_val_b_photos": 425
+  "gallery_detection_failure_rate": 0.007168458781361964,
+  "operating_point": "product choice, calibrated on val_a",
+  "target_gallery_far": 0.1,
+  "gallery_size": 279,
+  "threshold": 0.7969198822975159,
+  "per_impostor_far": 0.00037756496124173095,
+  "val_a_resolution": 1.2176708392187424e-05,
+  "below_resolution": false,
+  "achieved_gallery_far_val_b": 0.01411764705882353,
+  "n_val_b_photos": 425,
+  "oxford_cats": {
+   "n_photos": 2371,
+   "n_unreadable": 0,
+   "confident_match_rate": 0.0,
+   "routes": {
+    "face_box": 0.9472796288485871,
+    "whole_photo_no_box": 0.002108814846056516,
+    "whole_photo_box_covers_most": 0.05061155630535639
+   }
+  }
  },
  "queries": {
   "clean": {
    "n": 1350,
    "routes": {
-    "face_box": 0.14444444444444443,
-    "whole_photo_no_box": 0.0,
-    "whole_photo_box_covers_most": 0.8555555555555555
+    "face_box": 0.2548148148148148,
+    "whole_photo_no_box": 0.0044444444444444444,
+    "whole_photo_box_covers_most": 0.7407407407407407
    },
    "detection_failure_rate": {
-    "value": 0.0,
+    "value": 0.0044444444444444444,
     "ci95": [
-     0.0,
-     0.0
+     0.0014346432044892263,
+     0.008022770970804706
     ]
    },
    "rank1": {
-    "value": 0.7666666666666667,
+    "value": 0.7688888888888888,
     "ci95": [
-     0.7150369402155612,
-     0.8117694220545361
+     0.7187034493228178,
+     0.8133070994280016
     ]
    },
    "rank1_face_box_route": {
-    "value": 0.7487179487179487,
+    "value": 0.7325581395348837,
     "ci95": [
-     0.6666666666666666,
-     0.8342549329123915
+     0.6768604651162791,
+     0.7886979849279161
     ]
    },
-   "correct_and_above_no_match_threshold": {
-    "value": 0.1837037037037037,
+   "correct_and_confident": {
+    "value": 0.3148148148148148,
     "ci95": [
-     0.1522485835694051,
-     0.22102538458262672
+     0.2759133950273232,
+     0.3601578105712041
     ]
    }
   },
   "motion_blur": {
    "n": 1350,
    "routes": {
-    "face_box": 0.12148148148148148,
-    "whole_photo_no_box": 0.005925925925925926,
-    "whole_photo_box_covers_most": 0.8725925925925926
+    "face_box": 0.31037037037037035,
+    "whole_photo_no_box": 0.15259259259259259,
+    "whole_photo_box_covers_most": 0.5370370370370371
    },
    "detection_failure_rate": {
-    "value": 0.005925925925925926,
+    "value": 0.15259259259259259,
     "ci95": [
-     0.0022865853658536584,
-     0.010286917888054253
+     0.12912367543945033,
+     0.17411090390928616
     ]
    },
    "rank1": {
-    "value": 0.6392592592592593,
+    "value": 0.6562962962962963,
     "ci95": [
-     0.6013114821051573,
-     0.6776474115883234
+     0.6141736749522939,
+     0.6965395053438531
     ]
    },
    "rank1_face_box_route": {
-    "value": 0.5182926829268293,
+    "value": 0.6372315035799523,
     "ci95": [
-     0.4394313284259507,
-     0.6012944181790453
+     0.5856658504696478,
+     0.6898885114537061
     ]
    },
-   "correct_and_above_no_match_threshold": {
-    "value": 0.003703703703703704,
+   "correct_and_confident": {
+    "value": 0.027407407407407408,
     "ci95": [
-     0.0007601574417704515,
-     0.007352941176470588
+     0.017142245771347056,
+     0.03976949622037553
     ]
    }
   },
   "low_light": {
    "n": 1350,
    "routes": {
-    "face_box": 0.4577777777777778,
-    "whole_photo_no_box": 0.0014814814814814814,
-    "whole_photo_box_covers_most": 0.5407407407407407
+    "face_box": 0.3748148148148148,
+    "whole_photo_no_box": 0.16,
+    "whole_photo_box_covers_most": 0.4651851851851852
    },
    "detection_failure_rate": {
-    "value": 0.0014814814814814814,
+    "value": 0.16,
     "ci95": [
-     0.0,
-     0.004566646085582426
+     0.1322659695172591,
+     0.1858277974493153
     ]
    },
    "rank1": {
-    "value": 0.7266666666666667,
+    "value": 0.7288888888888889,
     "ci95": [
-     0.6888446663537442,
-     0.7630847370038564
+     0.6885079772364869,
+     0.7678888803124312
     ]
    },
    "rank1_face_box_route": {
-    "value": 0.7200647249190939,
+    "value": 0.7094861660079052,
     "ci95": [
-     0.6733398346854289,
-     0.7655686018699717
+     0.6574756355385964,
+     0.7653497094580842
     ]
    },
-   "correct_and_above_no_match_threshold": {
-    "value": 0.01925925925925926,
+   "correct_and_confident": {
+    "value": 0.07407407407407407,
     "ci95": [
-     0.009608281493001556,
-     0.03097262938855922
+     0.05377797946298263,
+     0.0960600964676524
     ]
    }
   },
   "jpeg": {
    "n": 1350,
    "routes": {
-    "face_box": 0.6940740740740741,
-    "whole_photo_no_box": 0.005185185185185185,
-    "whole_photo_box_covers_most": 0.30074074074074075
+    "face_box": 0.6718518518518518,
+    "whole_photo_no_box": 0.1562962962962963,
+    "whole_photo_box_covers_most": 0.17185185185185184
    },
    "detection_failure_rate": {
-    "value": 0.005185185185185185,
+    "value": 0.1562962962962963,
     "ci95": [
-     0.0015697052863365831,
-     0.009819848575842734
+     0.12915589080459772,
+     0.1849928475868207
     ]
    },
    "rank1": {
-    "value": 0.6859259259259259,
+    "value": 0.6748148148148149,
     "ci95": [
-     0.6453390748177728,
-     0.7267740039957692
+     0.6312719189302676,
+     0.7141795513937282
     ]
    },
    "rank1_face_box_route": {
-    "value": 0.6744930629669157,
+    "value": 0.6372657111356119,
     "ci95": [
-     0.6280784065657207,
-     0.7200372807017543
+     0.5905419373272044,
+     0.6874395209580838
     ]
    },
-   "correct_and_above_no_match_threshold": {
-    "value": 0.08296296296296296,
+   "correct_and_confident": {
+    "value": 0.16,
     "ci95": [
-     0.06067194724175058,
-     0.1082116977489557
+     0.13112003036030104,
+     0.19411561361905846
     ]
    }
   },
   "partial_crop": {
    "n": 1350,
    "routes": {
-    "face_box": 0.034074074074074076,
-    "whole_photo_no_box": 0.0007407407407407407,
-    "whole_photo_box_covers_most": 0.9651851851851851
+    "face_box": 0.1288888888888889,
+    "whole_photo_no_box": 0.02074074074074074,
+    "whole_photo_box_covers_most": 0.8503703703703703
    },
    "detection_failure_rate": {
-    "value": 0.0007407407407407407,
+    "value": 0.02074074074074074,
     "ci95": [
-     0.0,
-     0.002368221441182117
+     0.013746952155813555,
+     0.02873181132997218
     ]
    },
    "rank1": {
-    "value": 0.7466666666666667,
+    "value": 0.7481481481481481,
     "ci95": [
-     0.7035489865114971,
-     0.7861526179907601
+     0.7024054513446245,
+     0.7898213383203305
     ]
    },
    "rank1_face_box_route": {
-    "value": 0.7391304347826086,
+    "value": 0.603448275862069,
     "ci95": [
-     0.6136015769944342,
-     0.8637121212121212
+     0.5253897398712952,
+     0.6802385785055731
     ]
    },
-   "correct_and_above_no_match_threshold": {
-    "value": 0.15555555555555556,
+   "correct_and_confident": {
+    "value": 0.2822222222222222,
     "ci95": [
-     0.12559699902965468,
-     0.18781815509478333
+     0.24292346991611724,
+     0.32617656061122646
     ]
    }
   }
