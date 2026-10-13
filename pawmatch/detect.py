@@ -322,12 +322,12 @@ def oxford_halves():
     return dogs, skipped, {"A": order[:len(order) // 2], "B": order[len(order) // 2:]}
 
 
-def best_boxes(detector, paths):
+def best_boxes(detector, paths, batch=BATCH):
     """Best box and score per photo, or None, in batches."""
     found = []
-    for i in range(0, len(paths), BATCH):
+    for i in range(0, len(paths), batch):
         images = []
-        for p in paths[i:i + BATCH]:
+        for p in paths[i:i + batch]:
             with Image.open(p) as im:
                 images.append(im.convert("RGB"))
         found += detector(images)

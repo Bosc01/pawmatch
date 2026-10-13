@@ -32,6 +32,7 @@ from pawmatch import detect, embed, evaluate, metrics
 
 EPOCHS, BATCH, LR, MOMENTUM, WEIGHT_DECAY, LR_STEP, LR_GAMMA = 10, 2, 0.005, 0.9, 0.0005, 3, 0.1
 VAL_FRAC, SEED = 0.2, 1
+EVAL_BATCH = 4  # inference batch; batches of 16 photos of mixed sizes grew MPS memory past RAM
 CKPT = Path("data/cache/headdet/frcnn_mobilenet_v3_head.pt")
 
 
@@ -62,6 +63,9 @@ class HeadDetector:
     @torch.no_grad()
     def __call__(self, images):
         out = self.model([to_tensor(im).to(embed.device()) for im in images])
+        out = [{k: v.cpu() for k, v in o.items()} for o in out]
+        if embed.device().type == "mps":
+            torch.mps.empty_cache()  # variable photo sizes otherwise grow the MPS cache past RAM
         found = []
         for o in out:
             keep = o["scores"] > self.threshold
@@ -130,7 +134,7 @@ def evaluate_head():
             sizes[i] = im.size
 
     def found_on(detector, idx):
-        return detect.best_boxes(detector, [dogs[i][0] for i in idx])
+        return detect.best_boxes(detector, [dogs[i][0] for i in idx], batch=EVAL_BATCH)
 
     def score(found, idx, t):
         return detect.recall_with_rule(found, [sizes[i] for i in idx], [dogs[i][1] for i in idx], t)
