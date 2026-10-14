@@ -6,6 +6,11 @@
 # RUN is arcface, arcface_bh, or augmented (run (c): set train.run_c_arm and commit first).
 # The machine must already be running. This script rents, starts, and stops nothing.
 #
+# PetFace terms (DATA.md, 2026-10-14): cloud copies are allowed for training only. The
+# machine must stay private (no shared users, public images, or snapshots). This script
+# deletes data/PetFace from the machine when it exits, whether or not the run succeeded,
+# and deletes the PetFace-derived caches there once the results are safely copied back.
+#
 # Needs:
 #   - an Ubuntu machine with one NVIDIA GPU of 24 GB or more and its driver installed,
 #     with python3 (venv), rsync, make, and git, reachable over SSH with a key;
@@ -29,9 +34,17 @@ if [ -e "data/cache/petface/ckpt/$run.pt" ]; then
 fi
 
 dir=pawmatch
+remove_petface() {
+    if ssh "$host" "rm -rf $dir/data/PetFace"; then
+        echo "== deleted data/PetFace from $host"
+    else
+        echo "WARNING: could not delete data/PetFace from $host; delete it by hand (PetFace terms)" >&2
+    fi
+}
 echo "== code, configs, frozen split, and git history (no images, caches, or results)"
 rsync -az --delete --exclude data/ --exclude venv/ --exclude 'cpp/build*' --exclude results/ ./ "$host:$dir/"
-echo "== PetFace images (incremental after the first run)"
+echo "== PetFace images"
+trap remove_petface EXIT
 rsync -az data/PetFace/ "$host:$dir/data/PetFace/"
 echo "== environment"
 ssh "$host" "cd $dir && python3 -m venv venv && venv/bin/pip install -q --upgrade pip \
@@ -46,4 +59,10 @@ rsync -az "$host:$dir/data/cache/petface/ckpt/$run.pt" data/cache/petface/ckpt/
 rsync -az "$host:$dir/data/cache/petface/$run/" "data/cache/petface/$run/"
 rsync -az "$host:$dir/data/cache/petface/per_query/m1_$run.npz" data/cache/petface/per_query/
 rsync -az "$host:$dir/train_$run.log" data/cache/petface/logs/
+if [ -s "results/m1_$run.json" ] && [ -s "data/cache/petface/ckpt/$run.pt" ]; then
+    ssh "$host" "rm -rf $dir/data/cache/petface" && echo "== deleted PetFace-derived caches from $host"
+else
+    echo "results did not all copy back; remote caches kept so the copy can be retried" >&2
+    exit 1
+fi
 echo "== done: results/m1_$run.json. The machine is still running; stop it in the provider console."

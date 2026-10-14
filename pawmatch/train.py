@@ -173,7 +173,7 @@ def main(config, run):
     log = fit(model, tf, splits["train"], RUNS[arm], t["steps"], cfg["dataset"]["seed"], t["precision"],
               augment=run == RUN_C, log_every=1 if t["steps"] <= SMOKE_STEPS else 50)
     out.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"backbone": model.cpu().state_dict(), "run": run, "arm": arm, "log": log,
+    torch.save({"backbone": model.cpu().state_dict(), "run": run, "arm": arm, "log": log, "terms": data.model_terms(cfg),
                 "hardware": evaluate.hardware(), "code_commit": evaluate.commit()}, out)
     print(out)
 

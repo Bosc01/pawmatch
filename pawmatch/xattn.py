@@ -126,7 +126,7 @@ def main(config, job):
             sys.exit("set rerank_head.steps before the first PetFace run")
         head, log = fit(cfg, t["steps"])
         ckpt.parent.mkdir(parents=True, exist_ok=True)
-        torch.save({"head": head.cpu().state_dict(), "log": log}, ckpt)
+        torch.save({"head": head.cpu().state_dict(), "log": log, "terms": data.model_terms(cfg)}, ckpt)
         print(ckpt)
     else:
         head = CrossAttentionHead()

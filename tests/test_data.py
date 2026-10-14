@@ -69,3 +69,8 @@ def test_verification_pairs_one_positive_and_one_negative_per_dog():
     assert sorted(y for _, _, y in pairs) == [0] * 10 + [1] * 10
     for i, j, y in pairs:
         assert i != j and (ITEMS[i][1] == ITEMS[j][1]) == bool(y)
+
+
+def test_petface_trained_models_are_marked_non_commercial():
+    assert "non-commercial" in data.model_terms({"dataset": {"name": "petface"}})
+    assert data.model_terms({"dataset": {"name": "dogfacenet"}}) is None

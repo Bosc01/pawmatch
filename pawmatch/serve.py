@@ -29,8 +29,14 @@ CONFIDENCE_CALIBRATION = ("The confidence label is a product choice calibrated o
                           "(DogFaceNet val_a photos through the same detect-and-crop path), not on real "
                           "found-dog photos. All five candidates are always returned.")
 DEMO_NOTE = "Demo only. The gallery is a public research dataset, not real lost-dog reports."
-ATTRIBUTION = ("Gallery photos: DogFaceNet test split, CC BY 4.0. Guillaume Mougeot, 'The DogFaceNet "
-               "datasets', Zenodo, 2024, doi:10.5281/zenodo.12578449.")
+ATTRIBUTION = {
+    "dogfacenet": ("Gallery photos: DogFaceNet test split, CC BY 4.0. Guillaume Mougeot, 'The DogFaceNet "
+                   "datasets', Zenodo, 2024, doi:10.5281/zenodo.12578449."),
+    # PetFace terms (DATA.md): view-only display, so gallery entries are IDs and scores, never images.
+    "petface": ("Gallery: PetFace test split (Shinoda and Shiohara, ECCV 2024), non-commercial research use "
+                "only. Entries are IDs and scores; PetFace images are never returned."),
+}
+MATCH_FIELDS = ("rank", "dog_id", "score")  # no image bytes or image URLs, for any gallery
 
 
 class Matcher:
@@ -49,7 +55,7 @@ class Matcher:
         scores = self.gallery @ self.embed_face(crop)
         top = np.argsort(-scores, kind="stable")[:self.top_k]
         return {
-            "matches": [{"rank": r + 1, "dog_id": str(self.dogs[i]), "score": float(scores[i])} for r, i in enumerate(top)],
+            "matches": [dict(zip(MATCH_FIELDS, (r + 1, str(self.dogs[i]), float(scores[i])))) for r, i in enumerate(top)],
             "confidence": "confident_match" if scores[top[0]] >= self.threshold else "uncertain",
             "confidence_threshold": self.threshold,
             "operating_point": {"gallery_far": self.gallery_far, "gallery_size": len(self.gallery)},
@@ -60,12 +66,13 @@ class Matcher:
         }
 
 
-def create_app(matcher):
+def create_app(matcher, dataset="dogfacenet"):
     app = FastAPI(title="PawMatch demo")
+    attribution = ATTRIBUTION[dataset]
 
     @app.get("/about")
     def about():
-        return {"note": DEMO_NOTE, "attribution": ATTRIBUTION, "stores_photos": False}
+        return {"note": DEMO_NOTE, "attribution": attribution, "stores_photos": False, "returns_images": False}
 
     @app.post("/match")
     async def match(photo: UploadFile = File(...), description: str | None = Form(None)):
@@ -77,7 +84,7 @@ def create_app(matcher):
                 img = im.convert("RGB")
         except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
             raise HTTPException(400, NOT_IMAGE)
-        return {**matcher(img), "description_used": False, "note": DEMO_NOTE, "attribution": ATTRIBUTION}
+        return {**matcher(img), "description_used": False, "note": DEMO_NOTE, "attribution": attribution}
 
     return app
 
@@ -91,4 +98,5 @@ def build_app():
     path = detect.ServicePath(cfg["serve"]["model"])
     gallery, dogs, impostors, _ = detect.service_index(cfg, path)
     return create_app(Matcher(path.detector, lambda face: detect.embed_faces(path.model, path.tf, [face])[0],
-                              gallery, dogs, impostors, cfg["serve"]["confident_gallery_far"], cfg["serve"]["top_k"]))
+                              gallery, dogs, impostors, cfg["serve"]["confident_gallery_far"], cfg["serve"]["top_k"]),
+                      cfg["dataset"]["name"])

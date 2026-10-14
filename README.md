@@ -39,6 +39,10 @@ Apple M5, 24 GB RAM, 1 thread, top 100, one query at a time. Each figure is the 
 | 50,000 | v5_ilp | 1802.5 | 3171.9 | 6640.3 | 0 |
 <!-- m4:end -->
 
+## PetFace terms
+
+The PetFace authors allow use under these terms (DATA.md, received 2026-10-14). Non-commercial use only: every model trained on PetFace, including its checkpoints, is for non-commercial use only and is marked so in its metadata. No redistribution: no PetFace images, embeddings, or checkpoints are in this repository, and a test enforces it. PetFace sample images never appear in this README or the docs. When PetFace runs on a rented GPU machine, that machine stays private, and `scripts/cloud_finetune.sh` deletes the PetFace data from it after the run. With a PetFace gallery, the demo service returns IDs and scores only; any images shown come from DogFaceNet.
+
 ## Note on the vecstore ablation
 
 On DogFaceNet development data, vecstore's brute-force search measured faster than FAISS `IndexFlatIP`, with both pinned to one thread. vecstore calls NumPy, and this NumPy build runs its matrix-vector product in Apple Accelerate, while FAISS uses its own SIMD loop. The win belongs to Accelerate, not to vecstore's code, and it is not claimed as a project result.

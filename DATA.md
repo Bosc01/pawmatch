@@ -10,7 +10,7 @@ No images are stored in this repository. Everything under `data/` is ignored by 
 
 ### Access
 
-Status: no download link yet (2026-10-08).
+Status: the authors replied with usage terms on 2026-10-14 (below). The data is not yet in `data/PetFace`.
 
 Access is by Google Form only: https://docs.google.com/forms/d/e/1FAIpQLSfRPJaCmU6oQ4X_uB6H-EM5MSeczKczZxbQ5H9FMRS4KNY59w/viewform
 
@@ -30,7 +30,25 @@ There is no formal license. The GitHub repository has no license file, and the p
 - The repository README states that the dataset, the code, and the pretrained models are "for non-commercial research purpose only".
 - The project page states that the dataset is for research purposes only, and that the form exists to confirm research use.
 - The project page is licensed CC BY-SA 4.0. That license covers the website, not the dataset.
-- Redistribution is not addressed. This project treats it as not permitted: no PetFace images are committed, published, or served outside this machine.
+- Redistribution is not permitted, per the authors' reply below.
+
+### Terms from the authors' reply (received 2026-10-14)
+
+As relayed by the project owner on October 14, 2026. The authors' original wording is not reproduced in this repository.
+
+> 1. "Cloud copies are allowed for training."
+> 2. "Non-commercial use only, including models trained on PetFace."
+> 3. "No redistribution."
+> 4. "Display is view-only."
+
+How the project enforces them:
+
+1. **Cloud copies:** `scripts/cloud_finetune.sh` deletes `data/PetFace` from the rented machine whenever the script exits, and deletes the PetFace-derived caches there once the results are copied back. The rented machine stays private: no shared users, public images, or snapshots.
+2. **Non-commercial:** every PetFace-trained checkpoint (the fine-tune arms and the rerank head) carries a `terms` field marking it non-commercial (`pawmatch.data.model_terms`). The README says so too.
+3. **No redistribution:** `tests/test_no_petface_data.py` fails if git tracks anything under `data/`, any embedding cache, patch-feature file, or checkpoint, any PetFace-named data file, or any image outside `docs/images/dogfacenet/`. It also fails if a README or doc embeds such an image. PetFace sample images never appear in the README or docs.
+4. **View-only display:** with a PetFace gallery, `/match` returns entries as IDs and scores only, never image bytes or image URLs, and a test checks the fields. Demo images shown to users come from DogFaceNet only.
+
+Milestone 5 (Stay) stays on hold until the project owner confirms whether Stay has any revenue, ads, or company behind it.
 
 ### Dog subset (figures from the paper, Table 4b)
 

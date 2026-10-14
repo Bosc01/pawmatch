@@ -45,6 +45,7 @@ def test_match_returns_top5_sorted_with_a_confidence_label():
     assert body["confidence_calibration"] == serve.CONFIDENCE_CALIBRATION
     assert body["operating_point"] == {"gallery_far": 0.1, "gallery_size": 6}
     assert "CC BY 4.0" in body["attribution"] and body["face"]["box"] == [8.0, 4.0, 40.0, 36.0]
+    assert all(set(m) == {"rank", "dog_id", "score"} for m in body["matches"])  # IDs and scores only
     assert body["face"]["route"] == "face_box" and body["face"]["note"] is None
     strict = _client(threshold=0.99).post("/match", files={"photo": ("dog.png", _png("red"))}).json()
     assert strict["confidence"] == "uncertain" and len(strict["matches"]) == 5  # a label, not a filter
@@ -100,3 +101,14 @@ def test_service_detector_matches_the_latest_half_a_choice():
         pytest.skip("no Oxford selection yet")
     assert (detect.DETECTOR, detect.THRESHOLD) == (chosen["selected"] if "selected" in chosen else chosen["detector"],
                                                    chosen["threshold"])
+
+
+def test_petface_gallery_is_ids_and_scores_only():
+    def detect_faces(images):
+        return [((8.0, 4.0, 40.0, 36.0), 0.9) for _ in images]
+
+    matcher = serve.Matcher(detect_faces, lambda face: np.eye(6)[0], GALLERY, DOGS, np.zeros(10), 0.1)
+    client = TestClient(serve.create_app(matcher, "petface"))
+    body = client.post("/match", files={"photo": ("dog.png", _png("red"))}).json()
+    assert all(set(m) == {"rank", "dog_id", "score"} for m in body["matches"])
+    assert "never returned" in body["attribution"] and client.get("/about").json()["returns_images"] is False

@@ -16,6 +16,8 @@ from pathlib import Path
 SPLITS = ("train", "val_a", "val_b", "test")
 IMAGE_EXTS = (".jpg", ".jpeg", ".png")
 FROZEN_DIR = Path("splits")
+# PetFace authors' terms, received 2026-10-14 (DATA.md): stamped into every model trained on PetFace.
+PETFACE_MODEL_TERMS = "Trained on PetFace: non-commercial use only; do not redistribute (DATA.md, terms of 2026-10-14)."
 
 
 def load_config(path):
@@ -26,6 +28,11 @@ def load_config(path):
     cfg["results_dir"] = Path("results" if name == "petface" else "results/dev")
     cfg["cache_dir"] = Path("data/cache") / name
     return cfg
+
+
+def model_terms(cfg):
+    """Usage terms for a checkpoint trained under cfg: PetFace-trained models are non-commercial."""
+    return PETFACE_MODEL_TERMS if cfg["dataset"]["name"] == "petface" else None
 
 
 def dog_of(path):
