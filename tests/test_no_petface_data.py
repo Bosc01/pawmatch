@@ -23,7 +23,8 @@ def test_no_data_images_caches_or_checkpoints_are_tracked():
     files = tracked()
     assert not [f for f in files if f.startswith("data/")]
     assert not [f for f in files if DERIVED.search(f)]
-    assert not [f for f in files if "petface" in f.lower() and not f.endswith((".toml", ".json", ".md"))]
+    code_or_docs = (".py", ".sh", ".toml", ".json", ".md")  # e.g. configs/petface.toml, this test itself
+    assert not [f for f in files if "petface" in f.lower() and not f.endswith(code_or_docs)]
     assert not [f for f in files if IMAGE.search(f) and not f.startswith(DEMO_IMAGES)]
 
 
