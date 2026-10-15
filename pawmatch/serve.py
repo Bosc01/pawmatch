@@ -38,6 +38,13 @@ ATTRIBUTION = {
     "petface": ("Gallery: PetFace test split (Shinoda and Shiohara, ECCV 2024), non-commercial research use "
                 "only. Entries are IDs and scores; PetFace images are never returned."),
 }
+# The face detector in use, and the data it was trained on or released with.
+DETECTOR_ATTRIBUTION = {
+    "frcnn_head": ("Face detector trained on the Oxford-IIIT Pet dataset, CC BY-SA 4.0. O. M. Parkhi, A. Vedaldi, "
+                   "A. Zisserman, C. V. Jawahar, 'Cats and Dogs', CVPR 2012."),
+    "owlvit": "Face detector: OWL-ViT (google/owlvit-base-patch32), Apache 2.0.",
+    "owlv2": "Face detector: OWLv2 (google/owlv2-base-patch16-ensemble), Apache 2.0.",
+}
 MATCH_FIELDS = ("rank", "dog_id", "score")
 # Only DogFaceNet gallery photos may be shown (CC BY 4.0, attributed). PetFace display
 # terms: PetFace entries stay IDs and scores, and no PetFace image is ever served.
@@ -74,6 +81,7 @@ class Matcher:
 def create_app(matcher, dataset="dogfacenet", gallery_paths=None, allowed_origins=()):
     app = FastAPI(title="PawMatch demo")
     attribution = ATTRIBUTION[dataset]
+    detector_attribution = DETECTOR_ATTRIBUTION[detect.DETECTOR]
     images = dict(zip(map(str, matcher.dogs), gallery_paths or [])) if dataset in IMAGE_GALLERIES else {}
     if allowed_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(allowed_origins), allow_methods=["GET", "POST"],
@@ -87,7 +95,8 @@ def create_app(matcher, dataset="dogfacenet", gallery_paths=None, allowed_origin
 
     @app.get("/about")
     def about():
-        return {"note": DEMO_NOTE, "attribution": attribution, "gallery": dataset, "stores_photos": False,
+        return {"note": DEMO_NOTE, "attribution": attribution, "detector_attribution": detector_attribution,
+                "gallery": dataset, "stores_photos": False,
                 "returns_gallery_images": bool(images)}
 
     @app.post("/match")
@@ -104,7 +113,8 @@ def create_app(matcher, dataset="dogfacenet", gallery_paths=None, allowed_origin
         for m in result["matches"]:
             if m["dog_id"] in images:
                 m["image_url"] = f"/gallery/{m['dog_id']}.jpg"
-        return {**result, "gallery": dataset, "description_used": False, "note": DEMO_NOTE, "attribution": attribution}
+        return {**result, "gallery": dataset, "description_used": False, "note": DEMO_NOTE, "attribution": attribution,
+                "detector_attribution": detector_attribution}
 
     return app
 

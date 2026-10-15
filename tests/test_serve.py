@@ -47,6 +47,8 @@ def test_match_returns_top5_sorted_with_a_confidence_label():
     assert "CC BY 4.0" in body["attribution"] and body["face"]["box"] == [8.0, 4.0, 40.0, 36.0]
     assert all(set(m) == {"rank", "dog_id", "score"} for m in body["matches"])  # no gallery photos were given
     assert body["face"]["route"] == "face_box" and body["face"]["note"] is None
+    assert body["detector_attribution"] == serve.DETECTOR_ATTRIBUTION[detect.DETECTOR]
+    assert "Oxford-IIIT Pet" in serve.DETECTOR_ATTRIBUTION["frcnn_head"] and "CC BY-SA 4.0" in serve.DETECTOR_ATTRIBUTION["frcnn_head"]
     strict = _client(threshold=0.99).post("/match", files={"photo": ("dog.png", _png("red"))}).json()
     assert strict["confidence"] == "uncertain" and len(strict["matches"]) == 5  # a label, not a filter
 
