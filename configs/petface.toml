@@ -18,6 +18,7 @@ run_c_arm = ""  # arm with higher closed-set val_a rank-1 after runs (a) and (b)
 [serve]
 model = "dinov2_vits14"
 top_k = 5
+checkpoint = ""  # empty: frozen backbone; or a fine-tuned run, e.g. "data/cache/petface/ckpt/arcface_bh.pt" (non-commercial, DATA.md)
 confident_gallery_far = 0.1  # product choice: confidence label at 10% gallery-level FAR on val_a (decisions.md)
 
 [rerank_head]

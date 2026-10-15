@@ -15,6 +15,8 @@ import os
 
 import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from PIL import Image, UnidentifiedImageError
 
 from pawmatch import detect
@@ -36,7 +38,10 @@ ATTRIBUTION = {
     "petface": ("Gallery: PetFace test split (Shinoda and Shiohara, ECCV 2024), non-commercial research use "
                 "only. Entries are IDs and scores; PetFace images are never returned."),
 }
-MATCH_FIELDS = ("rank", "dog_id", "score")  # no image bytes or image URLs, for any gallery
+MATCH_FIELDS = ("rank", "dog_id", "score")
+# Only DogFaceNet gallery photos may be shown (CC BY 4.0, attributed). PetFace display
+# terms: PetFace entries stay IDs and scores, and no PetFace image is ever served.
+IMAGE_GALLERIES = {"dogfacenet"}
 
 
 class Matcher:
@@ -66,13 +71,24 @@ class Matcher:
         }
 
 
-def create_app(matcher, dataset="dogfacenet"):
+def create_app(matcher, dataset="dogfacenet", gallery_paths=None, allowed_origins=()):
     app = FastAPI(title="PawMatch demo")
     attribution = ATTRIBUTION[dataset]
+    images = dict(zip(map(str, matcher.dogs), gallery_paths or [])) if dataset in IMAGE_GALLERIES else {}
+    if allowed_origins:
+        app.add_middleware(CORSMiddleware, allow_origins=list(allowed_origins), allow_methods=["GET", "POST"],
+                           allow_headers=["*"])
+
+    @app.get("/gallery/{dog_id}.jpg")
+    def gallery_image(dog_id: str):
+        if dog_id not in images:
+            raise HTTPException(404, "No displayable gallery photo.")
+        return FileResponse(images[dog_id], media_type="image/jpeg")
 
     @app.get("/about")
     def about():
-        return {"note": DEMO_NOTE, "attribution": attribution, "stores_photos": False, "returns_images": False}
+        return {"note": DEMO_NOTE, "attribution": attribution, "gallery": dataset, "stores_photos": False,
+                "returns_gallery_images": bool(images)}
 
     @app.post("/match")
     async def match(photo: UploadFile = File(...), description: str | None = Form(None)):
@@ -84,7 +100,11 @@ def create_app(matcher, dataset="dogfacenet"):
                 img = im.convert("RGB")
         except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
             raise HTTPException(400, NOT_IMAGE)
-        return {**matcher(img), "description_used": False, "note": DEMO_NOTE, "attribution": attribution}
+        result = matcher(img)
+        for m in result["matches"]:
+            if m["dog_id"] in images:
+                m["image_url"] = f"/gallery/{m['dog_id']}.jpg"
+        return {**result, "gallery": dataset, "description_used": False, "note": DEMO_NOTE, "attribution": attribution}
 
     return app
 
@@ -95,8 +115,12 @@ def build_app():
     from pawmatch import data
 
     cfg = data.load_config(os.environ.get("PAWMATCH_CONFIG", "configs/dogfacenet.toml"))
-    path = detect.ServicePath(cfg["serve"]["model"])
+    path = detect.service_path(cfg)
     gallery, dogs, impostors, _ = detect.service_index(cfg, path)
+    splits, _ = data.load_splits(cfg)
+    g, _, _ = data.gallery_query(splits["test"], cfg["protocol"]["seed"])
+    assert [splits["test"][i][1] for i in g] == list(dogs), "gallery order changed; rebuild the service index"
+    origins = [o for o in os.environ.get("PAWMATCH_ALLOWED_ORIGINS", "http://localhost:5173").split(",") if o]
     return create_app(Matcher(path.detector, lambda face: detect.embed_faces(path.model, path.tf, [face])[0],
                               gallery, dogs, impostors, cfg["serve"]["confident_gallery_far"], cfg["serve"]["top_k"]),
-                      cfg["dataset"]["name"])
+                      cfg["dataset"]["name"], [splits["test"][i][0] for i in g], origins)

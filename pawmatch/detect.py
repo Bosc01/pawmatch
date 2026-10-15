@@ -164,11 +164,11 @@ class ServicePath:
     """Detect, crop, and embed: the one path for service queries, the service gallery,
     and the val_a photos that calibrate the no-match threshold."""
 
-    def __init__(self, model_name=MODEL):
+    def __init__(self, model_name=MODEL, checkpoint=""):
         from pawmatch import embed
 
         self.detector = make_detector()
-        self.model, self.tf = embed.build(model_name)
+        self.model, self.tf = embed.build(model_name, checkpoint or None)
 
     def __call__(self, images):
         """Embeddings, crop routes, and whether a box passed the threshold."""
@@ -185,6 +185,13 @@ class ServicePath:
                 np.concatenate([p[2] for p in parts]))
 
 
+def service_path(cfg):
+    """The service path for a config. [serve] checkpoint, when set, is the one line that
+    swaps in a fine-tuned model, for example a PetFace run (non-commercial, DATA.md)."""
+    s = cfg["serve"]
+    return ServicePath(s["model"], s.get("checkpoint", ""))
+
+
 def service_index(cfg, path=None):
     """The service gallery (one test photo per dog) and the val_a impostor scores that
     calibrate the confidence label, both through the service path, cached per split,
@@ -192,12 +199,12 @@ def service_index(cfg, path=None):
     actual gallery size (confidence_threshold)."""
     splits, sha = data.load_splits(cfg)
     s = cfg["serve"]
-    key = f"{sha}|{DETECTORS[DETECTOR]}|{THRESHOLD}|{CROP_SCALE}|{COVER}|{s['model']}"
+    key = f"{sha}|{DETECTORS[DETECTOR]}|{THRESHOLD}|{CROP_SCALE}|{COVER}|{s['model']}|{s.get('checkpoint', '')}"
     cache = cfg["cache_dir"] / "service_index.npz"
     if cache.exists() and str(np.load(cache)["key"]) == key:
         z = np.load(cache, allow_pickle=False)
         return z["gallery"], z["dogs"], z["impostors"], json.loads(str(z["calibration"]))
-    path = path or ServicePath(s["model"])
+    path = path or service_path(cfg)
     items = splits["test"]
     g, _, _ = data.gallery_query(items, cfg["protocol"]["seed"])
     gallery, g_routes, g_found = path.items(items, g)
@@ -230,7 +237,7 @@ def evaluate_detection(cfg):
     items, seed, n_boot = splits["test"], cfg["protocol"]["seed"], cfg["protocol"]["bootstrap"]
     dogs = np.array([d for _, d in items])
     g, q, _ = data.gallery_query(items, seed)
-    path = ServicePath(cfg["serve"]["model"])
+    path = service_path(cfg)
     gallery, g_dogs, impostors, calibration = service_index(cfg, path)
     far = cfg["serve"]["confident_gallery_far"]
     threshold, per, res = confidence_threshold(impostors, far, len(gallery))

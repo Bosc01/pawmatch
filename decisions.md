@@ -222,3 +222,10 @@ Outcome of the 10% operating point (2026-10-13, `results/dev/serve_detection.jso
 - **Remote cleanup:** the cloud script deletes `data/PetFace` on every exit, including failures, through a shell exit hook. It also deletes the PetFace-derived caches on the remote, but only after the results and checkpoint are confirmed on this machine, so a failed copy can be retried. The terms asked only for the images to be removed; also removing derived caches is the stricter of the two defensible choices, and it costs nothing once the copies are safe.
 - **No-redistribution test:** it allows images only under `docs/images/dogfacenet/`, a folder for DogFaceNet demo images. The alternative, banning all images, was rejected because it would block DogFaceNet demo images, which the terms allow. The test skips when run outside a git checkout.
 - **Checkpoint terms:** the non-commercial marking lives in each checkpoint's metadata as a `terms` field, added by `pawmatch.data.model_terms`. A separate license file per checkpoint was not needed, since checkpoints never leave `data/cache/`.
+
+## Serving Stay (2026-10-14)
+
+- **How Stay connects:** the Stay page calls the PawMatch service directly from the browser. No photo passes through or is stored by Stay's backend. The service allows Stay's origin through CORS (`PAWMATCH_ALLOWED_ORIGINS`).
+- **Gallery photos:** only a DogFaceNet gallery's photos are served (`GET /gallery/{dog_id}.jpg`, CC BY 4.0, attributed in every response). With a PetFace gallery the route returns 404 and matches carry IDs and scores only, even if photo paths are supplied. Every response names its gallery, so a client can apply the same rule.
+- **Switching models:** `[serve] checkpoint` is the one config line that swaps in a fine-tuned model, such as a PetFace run, while the gallery stays DogFaceNet. Until it is set, the service uses no PetFace data.
+- **No description field:** the optional description is not collected on the Stay page, since free text can carry personal data and the text model does not exist yet.

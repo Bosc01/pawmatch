@@ -45,7 +45,7 @@ def test_match_returns_top5_sorted_with_a_confidence_label():
     assert body["confidence_calibration"] == serve.CONFIDENCE_CALIBRATION
     assert body["operating_point"] == {"gallery_far": 0.1, "gallery_size": 6}
     assert "CC BY 4.0" in body["attribution"] and body["face"]["box"] == [8.0, 4.0, 40.0, 36.0]
-    assert all(set(m) == {"rank", "dog_id", "score"} for m in body["matches"])  # IDs and scores only
+    assert all(set(m) == {"rank", "dog_id", "score"} for m in body["matches"])  # no gallery photos were given
     assert body["face"]["route"] == "face_box" and body["face"]["note"] is None
     strict = _client(threshold=0.99).post("/match", files={"photo": ("dog.png", _png("red"))}).json()
     assert strict["confidence"] == "uncertain" and len(strict["matches"]) == 5  # a label, not a filter
@@ -110,5 +110,28 @@ def test_petface_gallery_is_ids_and_scores_only():
     matcher = serve.Matcher(detect_faces, lambda face: np.eye(6)[0], GALLERY, DOGS, np.zeros(10), 0.1)
     client = TestClient(serve.create_app(matcher, "petface"))
     body = client.post("/match", files={"photo": ("dog.png", _png("red"))}).json()
-    assert all(set(m) == {"rank", "dog_id", "score"} for m in body["matches"])
-    assert "never returned" in body["attribution"] and client.get("/about").json()["returns_images"] is False
+    assert all(set(m) == {"rank", "dog_id", "score"} for m in body["matches"]) and body["gallery"] == "petface"
+    assert "never returned" in body["attribution"] and client.get("/about").json()["returns_gallery_images"] is False
+
+
+def test_petface_gallery_photos_are_never_served_even_if_paths_are_given(tmp_path):
+    photo = tmp_path / "dog0.jpg"
+    Image.new("RGB", (8, 8), "red").save(photo)
+    matcher = serve.Matcher(lambda images: [None for _ in images], lambda face: np.eye(6)[0], GALLERY, DOGS, np.zeros(10), 0.1)
+    client = TestClient(serve.create_app(matcher, "petface", [str(photo)] * 6))
+    assert client.get("/gallery/dog0.jpg").status_code == 404
+    assert all("image_url" not in m for m in client.post("/match", files={"photo": ("d.png", _png("red"))}).json()["matches"])
+
+
+def test_dogfacenet_gallery_photos_are_served_with_attribution(tmp_path):
+    photos = []
+    for i in range(6):
+        photos.append(str(tmp_path / f"dog{i}.jpg"))
+        Image.new("RGB", (8, 8), "red").save(photos[-1])
+    matcher = serve.Matcher(lambda images: [None for _ in images], lambda face: np.eye(6)[0], GALLERY, DOGS, np.zeros(10), 0.1)
+    client = TestClient(serve.create_app(matcher, "dogfacenet", photos, ["http://localhost:5173"]))
+    body = client.post("/match", files={"photo": ("d.png", _png("red"))}, headers={"Origin": "http://localhost:5173"})
+    assert body.headers["access-control-allow-origin"] == "http://localhost:5173"
+    first = body.json()["matches"][0]
+    assert first["image_url"] == "/gallery/dog0.jpg" and "CC BY 4.0" in body.json()["attribution"]
+    assert client.get(first["image_url"]).content[:3] == b"\xff\xd8\xff"  # a JPEG
