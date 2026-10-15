@@ -1,6 +1,7 @@
 """PetFace terms (DATA.md): no redistribution. Git must never track PetFace images,
-embedding caches, patch features, or checkpoints, and README and docs show no
-images except DogFaceNet demo images in docs/images/dogfacenet/."""
+embedding caches, patch features, or checkpoints, nor the private correspondence in
+docs/private/, and README and docs show no images except DogFaceNet demo images in
+docs/images/dogfacenet/."""
 import re
 import subprocess
 from pathlib import Path
@@ -26,6 +27,10 @@ def test_no_data_images_caches_or_checkpoints_are_tracked():
     code_or_docs = (".py", ".sh", ".toml", ".json", ".md")  # e.g. configs/petface.toml, this test itself
     assert not [f for f in files if "petface" in f.lower() and not f.endswith(code_or_docs)]
     assert not [f for f in files if IMAGE.search(f) and not f.startswith(DEMO_IMAGES)]
+
+
+def test_private_docs_are_never_tracked():
+    assert not [f for f in tracked() if f.startswith("docs/private/")]
 
 
 def test_readme_and_docs_show_only_dogfacenet_demo_images():

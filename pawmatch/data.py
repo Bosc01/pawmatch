@@ -17,7 +17,8 @@ SPLITS = ("train", "val_a", "val_b", "test")
 IMAGE_EXTS = (".jpg", ".jpeg", ".png")
 FROZEN_DIR = Path("splits")
 # PetFace authors' terms, received 2026-10-14 (DATA.md): stamped into every model trained on PetFace.
-PETFACE_MODEL_TERMS = "Trained on PetFace: non-commercial use only; do not redistribute (DATA.md, terms of 2026-10-14)."
+PETFACE_MODEL_TERMS = ("Trained on PetFace: non-commercial use only, where commercial includes indirect revenue, "
+                       "subscriptions, ads, and for-profit use; do not redistribute (DATA.md, terms of 2026-10-14).")
 
 
 def load_config(path):

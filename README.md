@@ -41,7 +41,7 @@ Apple M5, 24 GB RAM, 1 thread, top 100, one query at a time. Each figure is the 
 
 ## PetFace terms
 
-The PetFace authors allow use under these terms (DATA.md, received 2026-10-14). Non-commercial use only: every model trained on PetFace, including its checkpoints, is for non-commercial use only and is marked so in its metadata. No redistribution: no PetFace images, embeddings, or checkpoints are in this repository, and a test enforces it. PetFace sample images never appear in this README or the docs. When PetFace runs on a rented GPU machine, that machine stays private, and `scripts/cloud_finetune.sh` deletes the PetFace data from it after the run. With a PetFace gallery, the demo service returns IDs and scores only; any images shown come from DogFaceNet.
+Permission was received by email from the PetFace authors on October 14, 2026; DATA.md paraphrases the terms. Non-commercial use only: every model trained on PetFace, including its checkpoints, is for non-commercial use only and is marked so in its metadata. Commercial use is defined broadly. It includes indirect revenue, subscriptions, advertising, and anything offered by or for a for-profit company. No redistribution, and nothing that amounts to it: no PetFace images, embeddings, or checkpoints are in this repository, and a test enforces it. PetFace sample images never appear in this README or the docs. When PetFace runs on a rented GPU machine, that machine stays private, and `scripts/cloud_finetune.sh` deletes the PetFace data from it after the run. With a PetFace gallery, the demo service returns IDs and scores only; any images shown come from DogFaceNet.
 
 ## Note on the vecstore ablation
 

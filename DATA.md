@@ -10,7 +10,7 @@ No images are stored in this repository. Everything under `data/` is ignored by 
 
 ### Access
 
-Status: the authors replied with usage terms on 2026-10-14 (below). The data is not yet in `data/PetFace`.
+Status: the authors granted permission with usage terms on 2026-10-14 (below). The data is not yet in `data/PetFace`.
 
 Access is by Google Form only: https://docs.google.com/forms/d/e/1FAIpQLSfRPJaCmU6oQ4X_uB6H-EM5MSeczKczZxbQ5H9FMRS4KNY59w/viewform
 
@@ -32,21 +32,29 @@ There is no formal license. The GitHub repository has no license file, and the p
 - The project page is licensed CC BY-SA 4.0. That license covers the website, not the dataset.
 - Redistribution is not permitted, per the authors' reply below.
 
-### Terms from the authors' reply (received 2026-10-14)
+### PetFace terms
 
-As relayed by the project owner on October 14, 2026. The authors' original wording is not reproduced in this repository.
+Permission received by email from the authors on October 14, 2026; original kept privately. The terms, paraphrased:
 
-> 1. "Cloud copies are allowed for training."
-> 2. "Non-commercial use only, including models trained on PetFace."
-> 3. "No redistribution."
-> 4. "Display is view-only."
+1. **Copies on a cloud machine for training.** The dataset may be copied to a cloud machine in order to train models, and it must remain private on that machine.
+2. **Non-commercial use only.** This covers both the dataset and anything built with it, trained models included. The authors define commercial use broadly. It covers any use that brings in revenue or some other commercial benefit, whether directly or indirectly. Examples include anything people pay for, services sold by subscription, applications or services funded by advertising, and any product or service offered by a for-profit company or on its behalf.
+3. **No redistribution.** Redistributing the dataset is prohibited, and so is any act that amounts to redistribution in substance.
+4. **View-only display.** Samples or parts of the dataset may be shown on a web page, in an application, or in another interface only so that people can look at them. Display is allowed only when users have no way to download, export, extract, or otherwise get the samples in a form they could reuse.
 
 How the project enforces them:
 
 1. **Cloud copies:** `scripts/cloud_finetune.sh` deletes `data/PetFace` from the rented machine whenever the script exits, and deletes the PetFace-derived caches there once the results are copied back. The rented machine stays private: no shared users, public images, or snapshots.
-2. **Non-commercial:** every PetFace-trained checkpoint (the fine-tune arms and the rerank head) carries a `terms` field marking it non-commercial (`pawmatch.data.model_terms`). The README says so too.
-3. **No redistribution:** `tests/test_no_petface_data.py` fails if git tracks anything under `data/`, any embedding cache, patch-feature file, or checkpoint, any PetFace-named data file, or any image outside `docs/images/dogfacenet/`. It also fails if a README or doc embeds such an image. PetFace sample images never appear in the README or docs.
-4. **View-only display:** with a PetFace gallery, `/match` returns entries as IDs and scores only, never image bytes or image URLs, and a test checks the fields. Demo images shown to users come from DogFaceNet only.
+2. **Non-commercial:** every PetFace-trained checkpoint (the fine-tune arms and the rerank head) carries a `terms` field marking it non-commercial under this broad definition (`pawmatch.data.model_terms`). The README says so too. The definition is why Milestone 5 waits on what is known about Stay's revenue, ads, and company.
+3. **No redistribution:** `tests/test_no_petface_data.py` fails if git tracks:
+   - anything under `data/`, or any embedding cache, patch-feature file, or checkpoint;
+   - any PetFace-named data file;
+   - any image outside `docs/images/dogfacenet/`;
+   - anything under `docs/private/`.
+
+   It also fails if a README or doc embeds such an image. Embeddings, patch features, and checkpoints derived from PetFace count as acts that amount to redistribution, so they are never committed or published. PetFace sample images never appear in the README or docs.
+4. **View-only display:** with a PetFace gallery, `/match` returns entries as IDs and scores only, never image bytes or image URLs, and a test checks the fields. That is stricter than the terms require, since no PetFace sample is shown at all. Demo images shown to users come from DogFaceNet only.
+
+The original email is kept in `docs/private/`, which git ignores; a test fails if anything there is ever tracked.
 
 Milestone 5 (Stay) stays on hold until the project owner confirms whether Stay has any revenue, ads, or company behind it.
 
