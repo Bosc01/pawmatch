@@ -44,7 +44,7 @@ Permission received by email from the authors on October 14, 2026; original kept
 How the project enforces them:
 
 1. **Cloud copies:** `scripts/cloud_finetune.sh` deletes `data/PetFace` from the rented machine whenever the script exits, and deletes the PetFace-derived caches there once the results are copied back. The rented machine stays private: no shared users, public images, or snapshots.
-2. **Non-commercial:** every PetFace-trained checkpoint (the fine-tune arms and the rerank head) carries a `terms` field marking it non-commercial under this broad definition (`pawmatch.data.model_terms`). The README says so too. The definition is why Milestone 5 waits on what is known about Stay's revenue, ads, and company.
+2. **Non-commercial:** every PetFace-trained checkpoint (the fine-tune arms and the rerank head) carries a `terms` field marking it non-commercial under this broad definition (`pawmatch.data.model_terms`). The README says so too. The definition is why Stay's status is recorded below.
 3. **No redistribution:** `tests/test_no_petface_data.py` fails if git tracks:
    - anything under `data/`, or any embedding cache, patch-feature file, or checkpoint;
    - any PetFace-named data file;
@@ -56,7 +56,18 @@ How the project enforces them:
 
 The original email is kept in `docs/private/`, which git ignores; a test fails if anything there is ever tracked.
 
-Milestone 5 (Stay) stays on hold until the project owner confirms whether Stay has any revenue, ads, or company behind it.
+### Stay status under the PetFace terms (confirmed 2026-10-14)
+
+Confirmed by the project owner on October 14, 2026:
+
+- Stay earns no money.
+- It has no plans to charge users, take donations through the app, or run ads.
+- It is not run by or for a company.
+- Austin Pets Alive pays for nothing.
+
+Under the PetFace terms, Stay is therefore non-commercial.
+
+Rule: if any of these facts changes, the Stay demo must switch to a model trained only on DogFaceNet before the change takes effect. The service Stay calls today already uses no PetFace data. Its backbone is frozen DINOv2, its face detector is trained on Oxford-IIIT Pet, and its gallery and calibration are DogFaceNet.
 
 ### Dog subset (figures from the paper, Table 4b)
 
