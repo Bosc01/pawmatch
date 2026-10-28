@@ -1,6 +1,6 @@
 faiss-cpu==1.15.1
 fastapi==0.143.0
-httpx==0.28.1
+httpx2==2.16.0
 numpy==2.5.3
 pillow==12.3.0
 pytest==9.1.1

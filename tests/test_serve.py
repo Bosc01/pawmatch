@@ -8,7 +8,7 @@ import pytest
 from PIL import Image
 
 pytest.importorskip("fastapi")
-pytest.importorskip("httpx")
+pytest.importorskip("httpx2")
 from fastapi.testclient import TestClient  # noqa: E402
 
 from pawmatch import detect, serve  # noqa: E402
