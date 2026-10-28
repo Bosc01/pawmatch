@@ -2,20 +2,20 @@ name: ci
 on: push
 jobs:
   python:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       # Unit tests need no torch and no data; tests that need them skip themselves in CI.
       - run: pip install $(grep -E '^(numpy|scipy|scikit-learn|pillow|faiss-cpu|pytest|fastapi|python-multipart|httpx)==' requirements.txt)
       - run: python -m pytest -q
   cpp:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       # There is no dataset in CI, so the parity fixtures are random unit vectors.
