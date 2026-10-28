@@ -6,15 +6,25 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
-add_compile_options(-Wall -Wextra)
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra>")
 # NEON is baseline on arm64. On x86-64, build the AVX2 and FMA path.
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64" OR CMAKE_OSX_ARCHITECTURES MATCHES "x86_64")
-  add_compile_options(-mavx2 -mfma)
+  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-mavx2;-mfma>")
 endif()
 
 add_library(scorer scorer.cpp)
 add_executable(bench bench.cpp)
 target_link_libraries(bench scorer)
+
+# The CUDA benchmark builds only where a CUDA compiler is found.
+include(CheckLanguage)
+check_language(CUDA)
+if(CMAKE_CUDA_COMPILER)
+  enable_language(CUDA)
+  set(CMAKE_CUDA_STANDARD 20)
+  add_executable(bench_cuda bench_cuda.cu)
+  target_link_libraries(bench_cuda scorer)
+endif()
 
 include(FetchContent)
 FetchContent_Declare(googletest

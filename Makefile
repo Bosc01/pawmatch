@@ -4,7 +4,7 @@ PORT ?= 8000
 PY = venv/bin/python
 BACKBONES = resnet50_in1k clip_vitb16 dinov2_vits14
 
-.PHONY: data embed eval train rerank-head retrieve precision-test detect serve export cpp cpp-test bench test readme facts
+.PHONY: data embed eval train rerank-head retrieve precision-test detect serve export cpp cpp-test bench bench-cuda test readme facts
 
 data:
 	$(PY) -m pawmatch.data $(CONFIG)
@@ -54,6 +54,11 @@ cpp-test: cpp
 bench: cpp
 	cpp/build/bench data/cache/m4/gallery.bin data/cache/m4/queries.bin > data/cache/m4/bench.json
 	$(PY) -m pawmatch.export --report data/cache/m4/bench.json
+
+bench-cuda:
+	cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_ARCHITECTURES=native
+	cmake --build cpp/build -j --target bench_cuda
+	cpp/build/bench_cuda data/cache/m4/gallery.bin data/cache/m4/queries.bin > data/cache/m4/bench_cuda.json
 
 test:
 	$(PY) -m pytest -q
