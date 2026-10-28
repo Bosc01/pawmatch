@@ -1,0 +1,162 @@
+{
+ "model": "trained dog-head detector (pawmatch.headdet): Faster R-CNN, MobileNetV3-Large FPN",
+ "code_commit": "214b233",
+ "hardware": "Apple M5, 24 GB RAM",
+ "torch": "2.14.1",
+ "device": "cpu",
+ "engine": "qnnpack",
+ "threads": 4,
+ "latency_protocol": {
+  "batch": 1,
+  "photos": 100,
+  "seed": 0,
+  "warmup": 10,
+  "runs": 5,
+  "timed": "forward pass only, photo already decoded and transformed"
+ },
+ "quantized": "static int8 MobileNetV3 body and FPN (FX graph mode, default qnnpack settings); dynamic int8 box head Linear layers",
+ "fp32_kept": "FPN extra 1x1 stride-2 max pool (QNNPACK rejects 1x1 pooling), RPN head, RoIAlign, NMS, box decoding",
+ "calibration": "first 100 half A training photos in headdet.half_a_split order",
+ "threshold": 0.2,
+ "size_mb": {
+  "fp32": 76.014599,
+  "int8": 20.954211
+ },
+ "latency": {
+  "photos": "half A internal validation, 100 drawn with seed 0",
+  "fp32": {
+   "p50_ms": 222.432728856802,
+   "p95_ms": 266.4131769677624,
+   "runs": [
+    {
+     "p50_ms": 190.58227096684277,
+     "p95_ms": 210.48015614505857
+    },
+    {
+     "p50_ms": 204.0759378578514,
+     "p95_ms": 266.4131769677624
+    },
+    {
+     "p50_ms": 222.432728856802,
+     "p95_ms": 281.4202000387013
+    },
+    {
+     "p50_ms": 233.26789611019194,
+     "p95_ms": 274.66518166475
+    },
+    {
+     "p50_ms": 226.00012482143939,
+     "p95_ms": 255.75643661431965
+    }
+   ]
+  },
+  "int8": {
+   "p50_ms": 97.43254142813385,
+   "p95_ms": 122.38835864700376,
+   "runs": [
+    {
+     "p50_ms": 96.45858290605247,
+     "p95_ms": 121.80667570792137
+    },
+    {
+     "p50_ms": 107.14189591817558,
+     "p95_ms": 283.8742745807394
+    },
+    {
+     "p50_ms": 96.16810432635248,
+     "p95_ms": 121.94283988792449
+    },
+    {
+     "p50_ms": 102.87437494844198,
+     "p95_ms": 244.95749361813066
+    },
+    {
+     "p50_ms": 97.43254142813385,
+     "p95_ms": 122.38835864700376
+    }
+   ]
+  }
+ },
+ "recall": {
+  "half_a_internal_val": {
+   "set": "half A internal validation",
+   "look": "selection set, not one-shot",
+   "n": 249,
+   "committed_fp32_mps": 0.9919678714859438,
+   "fp32": {
+    "recall_at_iou50": {
+     "value": 0.9919678714859438,
+     "ci95": [
+      0.9799196787148594,
+      1.0
+     ]
+    },
+    "recall_at_iou50_detector_box_only": 0.9919678714859438,
+    "routes": {
+     "face_box": 0.9477911646586346,
+     "whole_photo_no_box": 0.004016064257028112,
+     "whole_photo_box_covers_most": 0.04819277108433735
+    }
+   },
+   "int8": {
+    "recall_at_iou50": {
+     "value": 0.9839357429718876,
+     "ci95": [
+      0.9678714859437751,
+      0.9959839357429718
+     ]
+    },
+    "recall_at_iou50_detector_box_only": 0.9919678714859438,
+    "routes": {
+     "face_box": 0.9558232931726908,
+     "whole_photo_no_box": 0.0,
+     "whole_photo_box_covers_most": 0.04417670682730924
+    }
+   },
+   "photos_changed": {
+    "fp32_only": 2,
+    "int8_only": 0
+   }
+  },
+  "half_b": {
+   "set": "Oxford half B",
+   "look": "third look at half B, after the OWL-ViT choice (detection_oxford.json) and the fp32 trained detector (detection_oxford_trained.json); nothing is chosen from it",
+   "n": 1245,
+   "committed_fp32_mps": 0.9815261044176706,
+   "fp32": {
+    "recall_at_iou50": {
+     "value": 0.9815261044176706,
+     "ci95": [
+      0.9734939759036144,
+      0.9887550200803212
+     ]
+    },
+    "recall_at_iou50_detector_box_only": 0.9879518072289156,
+    "routes": {
+     "face_box": 0.9357429718875502,
+     "whole_photo_no_box": 0.001606425702811245,
+     "whole_photo_box_covers_most": 0.06265060240963856
+    }
+   },
+   "int8": {
+    "recall_at_iou50": {
+     "value": 0.9759036144578314,
+     "ci95": [
+      0.9678514056224901,
+      0.9839558232931727
+     ]
+    },
+    "recall_at_iou50_detector_box_only": 0.983132530120482,
+    "routes": {
+     "face_box": 0.9413654618473896,
+     "whole_photo_no_box": 0.0,
+     "whole_photo_box_covers_most": 0.058634538152610445
+    }
+   },
+   "photos_changed": {
+    "fp32_only": 15,
+    "int8_only": 8
+   }
+  }
+ }
+}

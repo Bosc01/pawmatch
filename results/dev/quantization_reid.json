@@ -1,0 +1,239 @@
+{
+ "dataset": "dogfacenet",
+ "model": "dinov2_vits14",
+ "checkpoint": "",
+ "code_commit": "214b233",
+ "hardware": "Apple M5, 24 GB RAM",
+ "torch": "2.14.1",
+ "device": "cpu",
+ "engine": "qnnpack",
+ "threads": 4,
+ "latency_protocol": {
+  "batch": 1,
+  "photos": 100,
+  "seed": 0,
+  "warmup": 10,
+  "runs": 5,
+  "timed": "forward pass only, photo already decoded and transformed"
+ },
+ "quantized": "dynamic int8 Linear layers (default settings)",
+ "fp32_kept": "patch embedding conv, LayerNorm, attention softmax, GELU",
+ "size_mb": {
+  "fp32": 86.577955,
+  "int8": 22.910307
+ },
+ "latency": {
+  "photos": "val_a, 100 drawn with seed 0",
+  "fp32": {
+   "p50_ms": 27.995666721835732,
+   "p95_ms": 31.244222610257566,
+   "runs": [
+    {
+     "p50_ms": 27.995666721835732,
+     "p95_ms": 51.13694570027292
+    },
+    {
+     "p50_ms": 27.890687342733145,
+     "p95_ms": 32.3010254651308
+    },
+    {
+     "p50_ms": 28.938583564013243,
+     "p95_ms": 31.244222610257566
+    },
+    {
+     "p50_ms": 27.746749809011817,
+     "p95_ms": 30.357384867966175
+    },
+    {
+     "p50_ms": 28.726895805448294,
+     "p95_ms": 30.774958804249763
+    }
+   ]
+  },
+  "int8": {
+   "p50_ms": 63.20120836608112,
+   "p95_ms": 79.59332962054759,
+   "runs": [
+    {
+     "p50_ms": 62.201916705816984,
+     "p95_ms": 87.11991063319147
+    },
+    {
+     "p50_ms": 63.20120836608112,
+     "p95_ms": 68.87516423594207
+    },
+    {
+     "p50_ms": 63.54166707023978,
+     "p95_ms": 85.39995504543185
+    },
+    {
+     "p50_ms": 61.76664587110281,
+     "p95_ms": 66.83841857593507
+    },
+    {
+     "p50_ms": 64.45972877554595,
+     "p95_ms": 79.59332962054759
+    }
+   ]
+  }
+ },
+ "split": "test",
+ "split_sha256": "e913cb14af098b4610c56ca2d1890b535d9e8be14a465da220e551d0122d28db",
+ "look": "DogFaceNet test split: development data, looked at before (m1 and later results); nothing is chosen from it",
+ "protocol": "Milestone 1 (pawmatch.evaluate)",
+ "fp32": {
+  "closed_set": {
+   "n_gallery": 279,
+   "n_queries": 1350,
+   "n_query_dogs": 279,
+   "rank1": {
+    "value": 0.7792592592592592,
+    "ci95": [
+     0.7300519833886935,
+     0.8207796780002978
+    ]
+   },
+   "rank5": {
+    "value": 0.9437037037037037,
+    "ci95": [
+     0.9225041623179763,
+     0.964887365191348
+    ]
+   },
+   "mrr": {
+    "value": 0.8483752658136348,
+    "ci95": [
+     0.8114325910693293,
+     0.8812143206793247
+    ]
+   }
+  },
+  "open_set": {
+   "unknown_frac": 0.5,
+   "n_gallery": 139,
+   "n_known_queries": 637,
+   "n_unknown_queries": 713,
+   "rank1_known": {
+    "value": 0.8649921507064364,
+    "ci95": [
+     0.8235268408062525,
+     0.9036243829184935
+    ]
+   },
+   "detection_auroc": {
+    "value": 0.8290042956442476,
+    "ci95": [
+     0.7840697494821597,
+     0.8703155840680417
+    ]
+   }
+  },
+  "map_leave_one_out": {
+   "n_queries": 1629,
+   "value": 0.8238961861393618,
+   "ci95": [
+    0.8028255902800214,
+    0.8452636310046502
+   ]
+  },
+  "verification": {
+   "n_pairs": 558,
+   "auc": {
+    "value": 0.9869862925707532,
+    "ci95": [
+     0.9782248429490885,
+     0.9938207371436646
+    ]
+   },
+   "auc_clamped_as_paper": {
+    "value": 0.9869862925707532,
+    "ci95": [
+     0.9782248429490885,
+     0.9938207371436646
+    ]
+   }
+  }
+ },
+ "int8": {
+  "closed_set": {
+   "n_gallery": 279,
+   "n_queries": 1350,
+   "n_query_dogs": 279,
+   "rank1": {
+    "value": 0.7681481481481481,
+    "ci95": [
+     0.7191954949280375,
+     0.8117115440545107
+    ]
+   },
+   "rank5": {
+    "value": 0.9303703703703704,
+    "ci95": [
+     0.9046520410642314,
+     0.9550347834132243
+    ]
+   },
+   "mrr": {
+    "value": 0.8403079978854536,
+    "ci95": [
+     0.8039700357950769,
+     0.8739099268614171
+    ]
+   }
+  },
+  "open_set": {
+   "unknown_frac": 0.5,
+   "n_gallery": 139,
+   "n_known_queries": 637,
+   "n_unknown_queries": 713,
+   "rank1_known": {
+    "value": 0.8618524332810047,
+    "ci95": [
+     0.8196169672827274,
+     0.9007758139534884
+    ]
+   },
+   "detection_auroc": {
+    "value": 0.8275401216695546,
+    "ci95": [
+     0.781879083142065,
+     0.8684825441548987
+    ]
+   }
+  },
+  "map_leave_one_out": {
+   "n_queries": 1629,
+   "value": 0.8139359057328456,
+   "ci95": [
+    0.7916048251688763,
+    0.8350792348797885
+   ]
+  },
+  "verification": {
+   "n_pairs": 558,
+   "auc": {
+    "value": 0.9861769504502769,
+    "ci95": [
+     0.9772867126578538,
+     0.9935647666396885
+    ]
+   },
+   "auc_clamped_as_paper": {
+    "value": 0.9861769504502769,
+    "ci95": [
+     0.9772867126578538,
+     0.9935647666396885
+    ]
+   }
+  }
+ },
+ "committed_fp32_mps_rank1": 0.7792592592592592,
+ "rank1_queries_changed": {
+  "fp32_only": 35,
+  "int8_only": 20
+ },
+ "cosine_fp32_int8": {
+  "mean": 0.9787789583206177,
+  "min": 0.9263026714324951
+ }
+}
