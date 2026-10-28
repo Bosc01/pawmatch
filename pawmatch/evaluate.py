@@ -118,9 +118,9 @@ def save_per_query(cfg, name, **arrays):
     np.savez(out, **arrays)
 
 
-def commit():
+def commit(paths=("pawmatch", "cpp")):
     git = lambda *a: subprocess.run(["git", *a], capture_output=True, text=True).stdout.strip()
-    return "uncommitted changes" if git("status", "--porcelain", "pawmatch", "cpp") else git("rev-parse", "--short", "HEAD")
+    return "uncommitted changes" if git("status", "--porcelain", *paths) else git("rev-parse", "--short", "HEAD")
 
 
 def hardware():

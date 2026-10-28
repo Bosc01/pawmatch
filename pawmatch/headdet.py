@@ -54,17 +54,18 @@ def half_a_split():
 class HeadDetector:
     """Same interface as detect.FaceDetector: best (box, score) per photo, or None."""
 
-    def __init__(self, threshold, checkpoint=CKPT):
+    def __init__(self, threshold, checkpoint=CKPT, device=None):
+        self.device = device or embed.device()
         self.model = build()
         self.model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
-        self.model.to(embed.device()).eval()
+        self.model.to(self.device).eval()
         self.threshold = threshold
 
     @torch.no_grad()
     def __call__(self, images):
-        out = self.model([to_tensor(im).to(embed.device()) for im in images])
+        out = self.model([to_tensor(im).to(self.device) for im in images])
         out = [{k: v.cpu() for k, v in o.items()} for o in out]
-        if embed.device().type == "mps":
+        if self.device.type == "mps":
             torch.mps.empty_cache()  # variable photo sizes otherwise grow the MPS cache past RAM
         found = []
         for o in out:

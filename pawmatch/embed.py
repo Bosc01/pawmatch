@@ -65,11 +65,11 @@ class Images(Dataset):
 
 
 @torch.no_grad()
-def encode(model, tf, paths, corruption=None, batch_size=64):
+def encode(model, tf, paths, corruption=None, batch_size=64, dev=None):
     """L2-normalized float32 embeddings, in the order of paths. No loader workers:
     decoding takes 0.6 ms per image against about 14 ms for the forward pass, and
     spawning workers on macOS made a 640-image run four times slower."""
-    dev = device()
+    dev = dev or device()
     model.to(dev).eval()
     loader = DataLoader(Images(paths, tf, corruption), batch_size=batch_size)
     return torch.cat([F.normalize(model(x.to(dev)), dim=1).cpu() for x in loader]).numpy()
